@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>멀티플레이 배틀로얄 TRPG: 최후의 1인</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #090d16;
+            color: #f8fafc;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .pulse-danger {
+            animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; border-color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
+            50% { opacity: 0.6; border-color: #7f1d1d; box-shadow: 0 0 5px rgba(127, 29, 29, 0.2); }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 min-h-screen text-slate-100 flex flex-col justify-between select-none">
+
+    <!-- Top Header Navigation -->
+    <header class="bg-slate-900/90 border-b border-slate-800 px-4 py-3 sticky top-0 z-40 backdrop-blur flex justify-between items-center">
+        <div class="max-w-7xl mx-auto w-full flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-radio text-red-500 text-2xl animate-pulse"></i>
+                <div>
+                    <h1 class="font-extrabold text-lg sm:text-xl tracking-wider text-slate-100 uppercase flex items-center gap-2">
+                        LAST SURVIVOR <span class="text-xs text-red-400 bg-red-950 px-2 py-0.5 rounded border border-red-800 font-bold">TRPG</span>
+                    </h1>
+                </div>
+            </div>
+            <div id="game-status-bar" class="hidden flex items-center space-x-4 sm:space-x-6 text-xs sm:text-sm">
+                <div class="flex items-center space-x-1.5">
+                    <i class="fa-solid fa-door-closed text-purple-400"></i>
+                    <span class="text-slate-400 hidden sm:inline">방 코드:</span>
+                    <span id="display-room-code" class="font-bold text-purple-400 uppercase tracking-widest text-sm">----</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <i class="fa-solid fa-users text-amber-400"></i>
+                    <span class="text-slate-400 hidden sm:inline">생존자:</span>
+                    <span id="stat-survivors" class="font-bold text-amber-400 text-sm">0</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <i class="fa-solid fa-clock text-cyan-400"></i>
+                    <span class="text-slate-400 hidden sm:inline">라운드:</span>
+                    <span id="stat-turn" class="font-bold text-cyan-400 text-sm">1</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto w-full p-4 flex-1 flex flex-col justify-center">
+
+        <!-- 1. MULTIPLAYER LOBBY SCREEN -->
+        <section id="screen-lobby" class="max-w-md mx-auto w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-red-950/60 border border-red-800 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg shadow-red-950/50">
+                    <i class="fa-solid fa-skull text-3xl text-red-500"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-100">최후의 1인 : TRPG 배틀로얄</h2>
+                <p class="text-xs text-slate-400 mt-1">이름을 입력하고 방에 참가하거나 싱글 플레이를 시작하세요.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">생존자 닉네임</label>
+                    <input type="text" id="input-nickname" placeholder="닉네임 입력" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-red-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">방 코드 (선택)</label>
+                    <input type="text" id="input-room-code" placeholder="예: ROOM123" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 uppercase tracking-widest focus:outline-none focus:border-red-500 transition">
+                </div>
+            </div>
+
+            <div class="space-y-2 pt-2">
+                <button onclick="handleCreateOrJoinRoom(false)" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition text-sm shadow-lg shadow-red-950/50 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> 멀티플레이 방 입장 / 생성
+                </button>
+                <button onclick="startSinglePlayerMode()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl transition text-sm border border-slate-700 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-robot text-cyan-400"></i> 싱글 / AI 오프라인 테스트
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. ROOM WAITING LOBBY SCREEN -->
+        <section id="screen-room-waiting" class="hidden max-w-lg mx-auto w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-100">대기실 참가자 목록</h2>
+                    <p class="text-xs text-slate-400">모든 생존자가 준비되면 게임을 시작합니다.</p>
+                </div>
+                <span id="waiting-room-code-badge" class="bg-purple-950 border border-purple-800 text-purple-300 font-bold text-xs px-3 py-1 rounded-full uppercase tracking-wider">ROOM123</span>
+            </div>
+
+            <!-- Player List Container -->
+            <div id="waiting-player-list" class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                <!-- Players dynamically injected here -->
+            </div>
+
+            <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+                <button onclick="leaveRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-left"></i> 나가기
+                </button>
+                <button id="btn-host-start" onclick="hostStartGame()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-lg shadow-emerald-950/50 flex items-center gap-2">
+                    <i class="fa-solid fa-play"></i> 게임 시작
+                </button>
+                <div id="waiting-status-msg" class="text-xs text-amber-400 font-semibold animate-pulse flex items-center gap-2">
+                    <i class="fa-solid fa-spinner animate-spin"></i> 방장이 게임을 시작하기를 기다리는 중...
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. GAMEPLAY SCREEN -->
+        <section id="screen-gameplay" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Left Column: Player Stats & Status -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <div>
+                                <h3 id="player-display-name" class="font-extrabold text-base text-slate-100">플레이어</h3>
+                                <p class="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                    <i class="fa-solid fa-location-dot text-red-400"></i> <span id="player-location-name">중앙 광장</span>
+                                </p>
+                            </div>
+                            <span id="player-status-badge" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-0.5 rounded-full font-bold">생존</span>
+                        </div>
+
+                        <!-- Health Bar -->
+                        <div class="mt-4 space-y-1.5">
+                            <div class="flex justify-between text-xs font-bold">
+                                <span class="text-slate-400">체력 (HP)</span>
+                                <span id="hp-text" class="text-red-400">100 / 100</span>
+                            </div>
+                            <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800 p-0.5">
+                                <div id="hp-bar" class="bg-gradient-to-r from-red-600 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: 100%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="grid grid-cols-4 gap-2 mt-4 text-center">
+                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                <div class="text-[10px] text-slate-500 font-semibold">근력</div>
+                                <div id="p-str" class="text-xs font-bold text-amber-400 mt-0.5">10</div>
+                            </div>
+                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                <div class="text-[10px] text-slate-500 font-semibold">민첩</div>
+                                <div id="p-dex" class="text-xs font-bold text-cyan-400 mt-0.5">10</div>
+                            </div>
+                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                <div class="text-[10px] text-slate-500 font-semibold">지능</div>
+                                <div id="p-int" class="text-xs font-bold text-purple-400 mt-0.5">10</div>
+                            </div>
+                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                <div class="text-[10px] text-slate-500 font-semibold">운</div>
+                                <div id="p-luck" class="text-xs font-bold text-emerald-400 mt-0.5">10</div>
+                            </div>
+                        </div>
+
+                        <!-- Equipped Items -->
+                        <div class="mt-4 space-y-2 text-xs">
+                            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                                <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-gavel text-amber-500"></i> 주 무기</span>
+                                <span id="equip-weapon" class="font-bold text-amber-300">맨손</span>
+                            </div>
+                            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                                <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-shield text-cyan-500"></i> 방어구</span>
+                                <span id="equip-armor" class="font-bold text-cyan-300">일반 의류</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Phase Selectors -->
+                    <div class="space-y-2 pt-3 border-t border-slate-800">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-bold text-slate-300">이번 라운드 행동 선택</span>
+                            <span id="action-lock-status" class="text-[10px] text-amber-400 font-semibold">선택 대기중</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="selectTurnAction('scavenge')" class="bg-slate-800 hover:bg-slate-700 active:bg-cyan-900 border border-slate-700 p-2.5 rounded-xl text-xs font-bold text-cyan-300 flex flex-col items-center gap-1 transition">
+                                <i class="fa-solid fa-magnifying-glass text-sm"></i> 수색
+                            </button>
+                            <button onclick="selectTurnAction('rest')" class="bg-slate-800 hover:bg-slate-700 active:bg-emerald-900 border border-slate-700 p-2.5 rounded-xl text-xs font-bold text-emerald-300 flex flex-col items-center gap-1 transition">
+                                <i class="fa-solid fa-heart-pulse text-sm"></i> 휴식
+                            </button>
+                            <button onclick="selectTurnAction('attack')" class="bg-slate-800 hover:bg-slate-700 active:bg-red-900 border border-slate-700 p-2.5 rounded-xl text-xs font-bold text-red-300 flex flex-col items-center gap-1 transition">
+                                <i class="fa-solid fa-crosshairs text-sm"></i> 공격
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <button onclick="openInventoryModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 py-2 px-3 rounded-xl text-xs font-bold text-slate-200 flex items-center justify-center gap-1.5 transition">
+                                <i class="fa-solid fa-briefcase text-amber-400"></i> 소지품
+                            </button>
+                            <button onclick="openCraftingModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 py-2 px-3 rounded-xl text-xs font-bold text-slate-200 flex items-center justify-center gap-1.5 transition">
+                                <i class="fa-solid fa-hammer text-purple-400"></i> 아이템 제작
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center & Right: Map Grid & Live Logs -->
+                <div class="lg:col-span-2 space-y-6 flex flex-col justify-between">
+                    
+                    <!-- Map Zones Grid -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-extrabold text-sm text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-map-location-dot text-cyan-400"></i> 생존 구역 지도
+                            </h3>
+                            <span class="text-[10px] text-slate-400">구역 카드를 클릭하여 이동</span>
+                        </div>
+                        <div id="map-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <!-- Dynamically generated map zone cards -->
+                        </div>
+                    </div>
+
+                    <!-- Realtime Action Event Logs -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 flex-1 flex flex-col justify-between min-h-[220px]">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <h3 class="font-extrabold text-sm text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-scroll text-amber-400"></i> 전장 기록 (로그)
+                            </h3>
+                            <span class="text-[10px] text-slate-500">실시간 매칭 상태</span>
+                        </div>
+                        <div id="event-log-container" class="font-mono text-xs text-slate-300 space-y-1 overflow-y-auto max-h-48 pr-2 flex-1">
+                            <!-- Dynamic log messages -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Inventory -->
+    <div id="modal-inventory" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-briefcase text-amber-400"></i> 인벤토리 및 장비
+                </h3>
+                <button onclick="closeModal('modal-inventory')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="inventory-equipped-list" class="space-y-2">
+                <!-- Equipped items details -->
+            </div>
+            <div class="border-t border-slate-800 pt-3">
+                <h4 class="text-xs font-bold text-slate-400 mb-2">보유 아이템</h4>
+                <div id="inventory-items-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <!-- Inventory items -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Crafting -->
+    <div id="modal-crafting" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-hammer text-purple-400"></i> 생존 아이템 제작
+                </h3>
+                <button onclick="closeModal('modal-crafting')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 mb-1.5">보유 재료</h4>
+                <div id="crafting-materials-summary" class="flex flex-wrap gap-1.5 min-h-[28px]">
+                    <!-- Crafting materials badges -->
+                </div>
+            </div>
+            <div class="border-t border-slate-800 pt-3">
+                <h4 class="text-xs font-bold text-slate-400 mb-2">제작 레시피 목록</h4>
+                <div id="crafting-recipes-list" class="space-y-2 max-h-52 overflow-y-auto pr-1">
+                    <!-- Recipes -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert / Toast Modal -->
+    <div id="modal-alert" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xs w-full p-5 text-center space-y-4 shadow-2xl">
+            <div class="w-12 h-12 bg-amber-950/80 border border-amber-700 rounded-full flex items-center justify-center mx-auto text-amber-400 text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <p id="alert-message-text" class="text-xs sm:text-sm text-slate-200 font-medium">경고 메시지입니다.</p>
+            <button onclick="closeModal('modal-alert')" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2 rounded-xl transition">
+                확인
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase and Main Game Script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        let db = null;
+        let isOfflineMode = false;
+
+        try {
+            if (firebaseConfig.apiKey !== "YOUR_API_KEY" && firebaseConfig.databaseURL !== "YOUR_DATABASE_URL") {
+                const app = initializeApp(firebaseConfig);
+                db = getDatabase(app);
+            } else {
+                console.warn("Firebase 설정이 연결되지 않았으므로 오프라인/테스트 모드로 전환됩니다.");
+                isOfflineMode = true;
+            }
+        } catch (err) {
+            console.error("Firebase 초기화 오류:", err);
+            isOfflineMode = true;
+        }
+
+        const ZONES = [
+            { id: 0, name: "중앙 광장", desc: "물자가 다수 존재하지만 위험한 지역입니다.", icon: "fa-monument", specialItem: "ITEM_MEDKIT" },
+            { id: 1, name: "폐허 연구소", desc: "고성능 파츠와 장비를 얻을 수 있습니다.", icon: "fa-flask", specialItem: "ITEM_PARTS" },
+            { id: 2, name: "버려진 주택가", desc: "기본적인 생존 물자를 수집하기 좋습니다.", icon: "fa-house", specialItem: "ITEM_BANDAGE" },
+            { id: 3, name: "군사 기지", desc: "강력한 군용 무기가 숨겨져 있습니다.", icon: "fa-shield-halved", specialItem: "ITEM_COMBAT_KNIFE" },
+            { id: 4, name: "음침한 숲", desc: "몸을 숨기기 쉽고 자연 재료가 풍부합니다.", icon: "fa-tree", specialItem: "ITEM_HARD_WOOD" },
+            { id: 5, name: "항구 창고", desc: "철재와 금속 부품을 찾을 수 있습니다.", icon: "fa-warehouse", specialItem: "ITEM_SCRAP_IRON" }
+        ];
+
+        const ITEMS_DATABASE = {
+            "ITEM_MEDKIT": { code: "ITEM_MEDKIT", name: "구급상자", type: "consumable", effect: "heal", value: 50, desc: "HP를 50 회복합니다." },
+            "ITEM_BANDAGE": { code: "ITEM_BANDAGE", name: "붕대", type: "consumable", effect: "heal", value: 20, desc: "HP를 20 회복합니다." },
+            "ITEM_COMBAT_KNIFE": { code: "ITEM_COMBAT_KNIFE", name: "군용 칼", type: "weapon", atk: 15, maxDurability: 5, desc: "공격력을 상승시킵니다. (+15, 내구도 5)" },
+            "ITEM_PARTS": { code: "ITEM_PARTS", name: "고성능 파츠", type: "material", desc: "고급 제작 재료" },
+            "ITEM_HARD_WOOD": { code: "ITEM_HARD_WOOD", name: "단단한 목재", type: "material", desc: "제작 재료" },
+            "ITEM_SCRAP_IRON": { code: "ITEM_SCRAP_IRON", name: "고철 조각", type: "material", desc: "제작 재료" }
+        };
+
+        const RECIPES = [
+            { id: "RECIPE_KNIFE", name: "개량형 단검", result: "ITEM_COMBAT_KNIFE", req: { "ITEM_SCRAP_IRON": 2, "ITEM_HARD_WOOD": 1 }, desc: "공격력 +15 무기 (내구도 5)" },
+            { id: "RECIPE_MEDKIT", name: "응급 키트", result: "ITEM_MEDKIT", req: { "ITEM_BANDAGE": 2 }, desc: "HP 50 회복 아이템" }
+        ];
+
+        let roomCode = "ROOM123";
+        let localPlayerId = "player_" + Math.random().toString(36).substring(2, 8);
+        let isHost = true;
+
+        let player = {
+            id: localPlayerId,
+            name: "생존자",
+            hp: 100,
+            maxHp: 100,
+            location: 0,
+            isAlive: true,
+            equippedWeapon: null,
+            equippedArmor: null,
+            inventory: { items: { "ITEM_BANDAGE": 2 } },
+            selectedAction: null
+        };
+
+        let stats = { str: 10, dex: 10, int: 10, luck: 10 };
+
+        let localRoomState = {
+            roomCode: roomCode,
+            status: "waiting",
+            turn: 1,
+            restrictedZones: [],
+            logs: [`전장에 개설되었습니다. (로컬/싱글 모드)`],
+            players: {
+                [localPlayerId]: {
+                    ...player,
+                    stats: stats,
+                    isHost: true
+                },
+                "bot_1": {
+                    id: "bot_1",
+                    name: "AI_생존자1",
+                    hp: 100,
+                    maxHp: 100,
+                    location: 1,
+                    isAlive: true,
+                    equippedWeapon: null,
+                    equippedArmor: null,
+                    inventory: { items: {} },
+                    stats: { str: 8, dex: 8, int: 8, luck: 8 },
+                    isHost: false
+                },
+                "bot_2": {
+                    id: "bot_2",
+                    name: "AI_생존자2",
+                    hp: 100,
+                    maxHp: 100,
+                    location: 2,
+                    isAlive: true,
+                    equippedWeapon: null,
+                    equippedArmor: null,
+                    inventory: { items: {} },
+                    stats: { str: 9, dex: 9, int: 9, luck: 9 },
+                    isHost: false
+                }
+            }
+        };
+
+        const getRoomRef = () => (db ? ref(db, `rooms/${roomCode}`) : null);
+
+        window.showAlert = function(msg) {
+            const msgEl = document.getElementById("alert-message-text");
+            const modalEl = document.getElementById("modal-alert");
+            if (msgEl && modalEl) {
+                msgEl.textContent = msg;
+                modalEl.classList.remove("hidden");
+            }
+        };
+
+        window.handleCreateOrJoinRoom = async function(isSinglePlayer = false) {
+            const nickInput = document.getElementById("input-nickname")?.value.trim();
+            const roomInput = document.getElementById("input-room-code")?.value.trim();
+
+            if (nickInput) {
+                player.name = nickInput;
+                if (localRoomState.players[localPlayerId]) {
+                    localRoomState.players[localPlayerId].name = nickInput;
+                }
+            }
+
+            if (roomInput) {
+                roomCode = roomInput.toUpperCase();
+                localRoomState.roomCode = roomCode;
+            }
+
+            document.getElementById("screen-lobby")?.classList.add("hidden");
+            document.getElementById("screen-room-waiting")?.classList.remove("hidden");
+
+            const badge = document.getElementById("waiting-room-code-badge");
+            if (badge) badge.textContent = roomCode;
+
+            if (isOfflineMode || !db) {
+                renderWaitingRoom(localRoomState);
+                return;
+            }
+
+            try {
+                const joined = await joinRoomInFirestore();
+                if (!joined) {
+                    await createRoomInFirestore();
+                    isHost = true;
+                }
+                listenToRoomUpdates();
+            } catch (err) {
+                console.error("Firebase 연결 실패, 오프라인 모드로 전환합니다.", err);
+                isOfflineMode = true;
+                renderWaitingRoom(localRoomState);
+            }
+        };
+
+        window.startSinglePlayerMode = function() {
+            isOfflineMode = true;
+            window.handleCreateOrJoinRoom(true);
+        };
+
+        async function createRoomInFirestore() {
+            if (isOfflineMode || !db) return;
+            const roomRef = getRoomRef();
+            const initialRoomData = {
+                roomCode: roomCode,
+                status: "waiting",
+                turn: 1,
+                restrictedZones: [],
+                logs: [`방 [${roomCode}]이(가) 생겼습니다.`],
+                players: {
+                    [localPlayerId]: {
+                        ...player,
+                        stats: stats,
+                        isHost: true
+                    }
+                }
+            };
+            await set(roomRef, initialRoomData);
+        }
+
+        async function joinRoomInFirestore() {
+            if (isOfflineMode || !db) return false;
+            const roomRef = getRoomRef();
+            const snapshot = await get(roomRef);
+
+            if (!snapshot.exists()) return false;
+
+            const roomData = snapshot.val();
+            if (roomData.status !== "waiting") {
+                window.showAlert("이미 진행 중인 게임입니다.");
+                return false;
+            }
+
+            const playerRef = ref(db, `rooms/${roomCode}/players/${localPlayerId}`);
+            await set(playerRef, {
+                ...player,
+                stats: stats,
+                isHost: false
+            });
+
+            return true;
+        }
+
+        function listenToRoomUpdates() {
+            if (isOfflineMode || !db) return;
+            const roomRef = getRoomRef();
+            onValue(roomRef, (snapshot) => {
+                if (!snapshot.exists()) return;
+
+                const roomData = snapshot.val();
+                renderWaitingRoom(roomData);
+                renderGameplayUI(roomData);
+
+                if (roomData.status === "playing") {
+                    document.getElementById("screen-room-waiting")?.classList.add("hidden");
+                    document.getElementById("screen-gameplay")?.classList.remove("hidden");
+                    document.getElementById("game-status-bar")?.classList.remove("hidden");
+                }
+            });
+        }
+
+        function renderWaitingRoom(roomData) {
+            const playerListEl = document.getElementById("waiting-player-list");
+            if (!playerListEl) return;
+
+            playerListEl.innerHTML = "";
+
+            const players = roomData.players || {};
+            Object.values(players).forEach((p) => {
+                const card = document.createElement("div");
+                card.className = "bg-slate-950 border border-slate-800 p-3 rounded-xl flex items-center justify-between";
+                card.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-user text-slate-400"></i>
+                        <span class="font-bold text-sm text-slate-200">${p.name}</span>
+                        ${p.isHost ? '<span class="text-[10px] bg-red-950 text-red-400 border border-red-800 px-1.5 py-0.5 rounded font-bold">방장</span>' : ''}
+                    </div>
+                    <span class="text-xs text-slate-400">HP ${p.hp}/${p.maxHp}</span>
+                `;
+                playerListEl.appendChild(card);
+            });
+
+            const hostStartBtn = document.getElementById("btn-host-start");
+            const waitingMsg = document.getElementById("waiting-status-msg");
+
+            if (isHost) {
+                hostStartBtn?.classList.remove("hidden");
+                waitingMsg?.classList.add("hidden");
+            } else {
+                hostStartBtn?.classList.add("hidden");
+                waitingMsg?.classList.remove("hidden");
+            }
+        }
+
+        window.hostStartGame = async function() {
+            if (!isHost) return;
+
+            if (isOfflineMode || !db) {
+                localRoomState.status = "playing";
+                document.getElementById("screen-room-waiting")?.classList.add("hidden");
+                document.getElementById("screen-gameplay")?.classList.remove("hidden");
+                document.getElementById("game-status-bar")?.classList.remove("hidden");
+                renderGameplayUI(localRoomState);
+                return;
+            }
+
+            const roomRef = getRoomRef();
+            await update(roomRef, { status: "playing" });
+        };
+
+        window.leaveRoom = function() {
+            location.reload();
+        };
+
+        function renderGameplayUI(roomData) {
+            const players = roomData.players || {};
+            const me = players[localPlayerId];
+
+            if (me) {
+                player = me;
+                const nameEl = document.getElementById("player-display-name");
+                if (nameEl) nameEl.textContent = me.name;
+
+                const locEl = document.getElementById("player-location-name");
+                if (locEl) locEl.textContent = ZONES[me.location]?.name || "알 수 없음";
+
+                const hpTextEl = document.getElementById("hp-text");
+                if (hpTextEl) hpTextEl.textContent = `${me.hp} / ${me.maxHp}`;
+                
+                const hpBarEl = document.getElementById("hp-bar");
+                if (hpBarEl) {
+                    const hpPercent = Math.max(0, Math.min(100, (me.hp / me.maxHp) * 100));
+                    hpBarEl.style.width = `${hpPercent}%`;
+                }
+
+                const wEl = document.getElementById("equip-weapon");
+                if (wEl) {
+                    if (me.equippedWeapon) {
+                        const wData = ITEMS_DATABASE[me.equippedWeapon.itemCode];
+                        wEl.textContent = `${wData?.name || "무기"} (${me.equippedWeapon.currentDurability}/${wData?.maxDurability || 5})`;
+                    } else {
+                        wEl.textContent = "맨손";
+                    }
+                }
+
+                const armEl = document.getElementById("equip-armor");
+                if (armEl) armEl.textContent = me.equippedArmor || "일반 의류";
+
+                if (me.stats) {
+                    if (document.getElementById("p-str")) document.getElementById("p-str").textContent = me.stats.str;
+                    if (document.getElementById("p-dex")) document.getElementById("p-dex").textContent = me.stats.dex;
+                    if (document.getElementById("p-int")) document.getElementById("p-int").textContent = me.stats.int;
+                    if (document.getElementById("p-luck")) document.getElementById("p-luck").textContent = me.stats.luck;
+                }
+
+                const statusBadge = document.getElementById("player-status-badge");
+                if (statusBadge) {
+                    if (me.isAlive) {
+                        statusBadge.textContent = "생존";
+                        statusBadge.className = "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-0.5 rounded-full font-bold";
+                    } else {
+                        statusBadge.textContent = "사망";
+                        statusBadge.className = "text-[10px] bg-red-950 text-red-500 border border-red-800 px-2.5 py-0.5 rounded-full font-bold animate-pulse";
+                    }
+                }
+
+                const lockStatus = document.getElementById("action-lock-status");
+                if (lockStatus) {
+                    if (me.selectedAction) {
+                        lockStatus.textContent = `선택 완료 (${me.selectedAction})`;
+                        lockStatus.className = "text-[10px] text-emerald-400 font-semibold";
+                    } else {
+                        lockStatus.textContent = "선택 대기중";
+                        lockStatus.className = "text-[10px] text-amber-400 font-semibold";
+                    }
+                }
+            }
+
+            if (document.getElementById("display-room-code")) document.getElementById("display-room-code").textContent = roomCode;
+            if (document.getElementById("stat-turn")) document.getElementById("stat-turn").textContent = roomData.turn || 1;
+
+            const aliveCount = Object.values(players).filter(p => p.isAlive).length;
+            if (document.getElementById("stat-survivors")) document.getElementById("stat-survivors").textContent = aliveCount;
+
+            renderMap(roomData);
+            renderLogs(roomData.logs || []);
+        }
+
+        function renderMap(roomData) {
+            const gridEl = document.getElementById("map-grid");
+            if (!gridEl) return;
+            gridEl.innerHTML = "";
+
+            const restricted = roomData.restrictedZones || [];
+            const players = roomData.players || {};
+
+            ZONES.forEach((zone) => {
+                const isRestricted = restricted.includes(zone.id);
+                const playersInZone = Object.values(players).filter(p => p.isAlive && p.location === zone.id);
+                const isMyZone = player.location === zone.id;
+
+                const zoneCard = document.createElement("div");
+                zoneCard.className = `p-3 rounded-xl border flex flex-col justify-between transition cursor-pointer relative overflow-hidden ${
+                    isRestricted 
+                        ? 'bg-red-950/40 border-red-800/80 pulse-danger' 
+                        : isMyZone 
+                            ? 'bg-slate-800 border-cyan-500 shadow-md shadow-cyan-950/50' 
+                            : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                }`;
+
+                zoneCard.onclick = () => moveZone(zone.id);
+
+                let badgeMarkup = isRestricted 
+                    ? `<span class="text-[9px] bg-red-950 text-red-400 border border-red-800 px-1.5 py-0.5 rounded font-bold uppercase">금지 구역</span>`
+                    : `<span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded font-bold uppercase">안전</span>`;
+
+                let playerIcons = playersInZone.map(p => 
+                    `<span class="inline-block bg-slate-800 border border-slate-600 rounded px-1 text-[10px] text-amber-300 font-bold">${p.name}</span>`
+                ).join(" ");
+
+                zoneCard.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-xs text-slate-100 flex items-center gap-1.5">
+                                <i class="fa-solid ${zone.icon} text-slate-400"></i> ${zone.name}
+                            </span>
+                            ${badgeMarkup}
+                        </div>
+                        <p class="text-[10px] text-slate-400 line-clamp-1">${zone.desc}</p>
+                    </div>
+                    <div class="mt-2 pt-1.5 border-t border-slate-800/60 flex items-center justify-between text-[10px]">
+                        <span class="text-slate-500">생존자 (${playersInZone.length})</span>
+                        <div class="flex gap-1 overflow-hidden">${playerIcons}</div>
+                    </div>
+                `;
+
+                gridEl.appendChild(zoneCard);
+            });
+        }
+
+        async function moveZone(zoneId) {
+            if (!player.isAlive) return;
+
+            if (isOfflineMode || !db) {
+                localRoomState.players[localPlayerId].location = zoneId;
+                renderGameplayUI(localRoomState);
+                return;
+            }
+
+            const playerRef = ref(db, `rooms/${roomCode}/players/${localPlayerId}`);
+            await update(playerRef, { location: zoneId });
+        }
+
+        window.selectTurnAction = async function(actionType) {
+            if (!player.isAlive) {
+                window.showAlert("사망한 상태에서는 행동할 수 없습니다.");
+                return;
+            }
+
+            if (isOfflineMode || !db) {
+                localRoomState.players[localPlayerId].selectedAction = actionType;
+                
+                Object.values(localRoomState.players).forEach(p => {
+                    if (p.id !== localPlayerId && p.isAlive) {
+                        const actions = ['scavenge', 'rest', 'attack'];
+                        p.selectedAction = actions[Math.floor(Math.random() * actions.length)];
+                    }
+                });
+
+                resolveTurnLogic(localRoomState);
+                renderGameplayUI(localRoomState);
+                return;
+            }
+
+            const playerRef = ref(db, `rooms/${roomCode}/players/${localPlayerId}`);
+            await update(playerRef, { selectedAction: actionType });
+
+            checkAndResolveTurn();
+        };
+
+        async function checkAndResolveTurn() {
+            if (!isHost || isOfflineMode || !db) return;
+
+            const roomRef = getRoomRef();
+            const snapshot = await get(roomRef);
+            if (!snapshot.exists()) return;
+
+            const roomData = snapshot.val();
+            const players = roomData.players || {};
+            const alivePlayers = Object.values(players).filter(p => p.isAlive);
+
+            const allReady = alivePlayers.every(p => p.selectedAction !== null && p.selectedAction !== undefined);
+
+            if (allReady && alivePlayers.length > 0) {
+                resolveTurnLogic(roomData);
+            }
+        }
+
+        async function resolveTurnLogic(roomData) {
+            let players = roomData.players;
+            let logs = roomData.logs || [];
+            let currentTurn = roomData.turn || 1;
+            let restrictedZones = roomData.restrictedZones || [];
+
+            logs.push(`\n=== [라운드 ${currentTurn} 결과] ===`);
+
+            Object.keys(players).forEach((id) => {
+                let p = players[id];
+                if (!p.isAlive) return;
+
+                if (p.selectedAction === 'scavenge') {
+                    const zone = ZONES[p.location];
+                    const itemCode = zone.specialItem;
+                    const itemInfo = ITEMS_DATABASE[itemCode];
+
+                    p.inventory = p.inventory || { items: {} };
+                    p.inventory.items = p.inventory.items || {};
+
+                    p.inventory.items[itemCode] = (p.inventory.items[itemCode] || 0) + 1;
+                    logs.push(`🔍 [${p.name}]이(가) ${zone.name}에서 [${itemInfo?.name || itemCode}]을(를) 탐색해 획득했습니다.`);
+                } else if (p.selectedAction === 'rest') {
+                    const healAmt = 25;
+                    p.hp = Math.min(p.maxHp, p.hp + healAmt);
+                    logs.push(`💚 [${p.name}]이(가) 휴식을 취해 HP를 ${healAmt} 회복했습니다.`);
+                } else if (p.selectedAction === 'attack') {
+                    const enemies = Object.values(players).filter(e => e.isAlive && e.id !== p.id && e.location === p.location);
+                    if (enemies.length > 0) {
+                        const target = enemies[Math.floor(Math.random() * enemies.length)];
+                        
+                        let weaponAtk = 5;
+                        let weaponName = "맨손";
+
+                        if (p.equippedWeapon) {
+                            const wData = ITEMS_DATABASE[p.equippedWeapon.itemCode];
+                            weaponAtk = wData?.atk || 15;
+                            weaponName = wData?.name || "무기";
+                            p.equippedWeapon.currentDurability -= 1;
+                        }
+
+                        const strBonus = Math.floor((p.stats?.str || 10) / 2);
+                        const dmg = weaponAtk + strBonus;
+
+                        target.hp -= dmg;
+                        logs.push(`⚔️ [${p.name}]이(가) [${weaponName}]으로 [${target.name}]에게 ${dmg} 데미지를 입혔습니다!`);
+
+                        if (p.equippedWeapon && p.equippedWeapon.currentDurability <= 0) {
+                            logs.push(`💥 [${p.name}]의 [${weaponName}] 내구도가 다하여 파괴되었습니다!`);
+                            const itemCode = p.equippedWeapon.itemCode;
+                            if (p.inventory?.items[itemCode] > 0) {
+                                p.inventory.items[itemCode] -= 1;
+                                if (p.inventory.items[itemCode] <= 0) delete p.inventory.items[itemCode];
+                            }
+
+                            if (p.inventory?.items[itemCode] > 0) {
+                                p.equippedWeapon.currentDurability = ITEMS_DATABASE[itemCode].maxDurability || 5;
+                                logs.push(`🔄 [${p.name}]이(가) 새 무기를 자동 장착했습니다.`);
+                            } else {
+                                p.equippedWeapon = null;
+                            }
+                        }
+
+                        if (target.hp <= 0) {
+                            target.hp = 0;
+                            target.isAlive = false;
+                            logs.push(`💀 [${target.name}]이(가) 쓰러졌습니다!`);
+                        }
+                    } else {
+                        logs.push(`⚔️ [${p.name}]이(가) 공격하려 했으나 구역에 적이 없었습니다.`);
+                    }
+                }
+
+                p.selectedAction = null;
+            });
+
+            if (currentTurn % 2 === 0 && restrictedZones.length < ZONES.length - 1) {
+                let available = ZONES.map(z => z.id).filter(id => !restrictedZones.includes(id));
+                if (available.length > 0) {
+                    let newlyRestricted = available[Math.floor(Math.random() * available.length)];
+                    restrictedZones.push(newlyRestricted);
+                    logs.push(`🚨 [경고] ${ZONES[newlyRestricted].name} 구역이 금지 구역이 되었습니다!`);
+
+                    Object.keys(players).forEach((id) => {
+                        let p = players[id];
+                        if (p.isAlive && p.location === newlyRestricted) {
+                            p.hp -= 40;
+                            logs.push(`⚠️ [${p.name}]이(가) 금지 구역에서 40 데미지를 입었습니다!`);
+                            if (p.hp <= 0) {
+                                p.hp = 0;
+                                p.isAlive = false;
+                                logs.push(`💀 [${p.name}]이(가) 자기장에 탈락했습니다!`);
+                            }
+                        }
+                    });
+                }
+            }
+
+            if (isOfflineMode || !db) {
+                localRoomState.turn = currentTurn + 1;
+                localRoomState.restrictedZones = restrictedZones;
+                return;
+            }
+
+            const roomRef = getRoomRef();
+            await update(roomRef, {
+                players: players,
+                logs: logs,
+                turn: currentTurn + 1,
+                restrictedZones: restrictedZones
+            });
+        }
+
+        function renderLogs(logs) {
+            const container = document.getElementById("event-log-container");
+            if (!container) return;
+            container.innerHTML = "";
+            logs.slice(-30).forEach(log => {
+                const item = document.createElement("div");
+                item.className = "py-0.5 border-b border-slate-800/40";
+                item.textContent = log;
+                container.appendChild(item);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        window.openInventoryModal = function() {
+            document.getElementById("modal-inventory")?.classList.remove("hidden");
+            renderInventory();
+        };
+
+        window.openCraftingModal = function() {
+            document.getElementById("modal-crafting")?.classList.remove("hidden");
+            renderCrafting();
+        };
+
+        window.closeModal = function(id) {
+            document.getElementById(id)?.classList.add("hidden");
+        };
+
+        function renderInventory() {
+            const equippedList = document.getElementById("inventory-equipped-list");
+            const itemsList = document.getElementById("inventory-items-list");
+            if (!equippedList || !itemsList) return;
+
+            let weaponText = "맨손";
+            if (player.equippedWeapon) {
+                const wData = ITEMS_DATABASE[player.equippedWeapon.itemCode];
+                weaponText = `${wData?.name} (내구도: ${player.equippedWeapon.currentDurability}/${wData?.maxDurability || 5})`;
+            }
+
+            equippedList.innerHTML = `
+                <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 text-xs flex justify-between">
+                    <span class="text-slate-400">무기:</span>
+                    <span class="font-bold text-amber-400">${weaponText}</span>
+                </div>
+                <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 text-xs flex justify-between">
+                    <span class="text-slate-400">방어구:</span>
+                    <span class="font-bold text-cyan-400">${player.equippedArmor || "없음"}</span>
+                </div>
+            `;
+
+            itemsList.innerHTML = "";
+            const items = player.inventory?.items || {};
+            const itemKeys = Object.keys(items);
+
+            if (itemKeys.length === 0) {
+                itemsList.innerHTML = `<div class="text-xs text-slate-500 italic">소지 중인 아이템이 없습니다.</div>`;
+                return;
+            }
+
+            itemKeys.forEach(code => {
+                const count = items[code];
+                if (count <= 0) return;
+
+                const itemData = ITEMS_DATABASE[code] || { name: code, type: "material", desc: "" };
+                const div = document.createElement("div");
+                div.className = "bg-slate-950 p-2 rounded-xl border border-slate-800 flex justify-between items-center text-xs";
+                
+                let actionBtn = "";
+                if (itemData.type === 'consumable') {
+                    actionBtn = `<button onclick="useOrEquipItem('${code}')" class="bg-emerald-800 hover:bg-emerald-700 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white transition">사용</button>`;
+                } else if (itemData.type === 'weapon') {
+                    actionBtn = `<button onclick="useOrEquipItem('${code}')" class="bg-amber-800 hover:bg-amber-700 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white transition">장착</button>`;
+                }
+
+                div.innerHTML = `
+                    <div>
+                        <span class="font-bold text-slate-200">${itemData.name}</span>
+                        <span class="text-slate-500 ml-1">x${count}</span>
+                        <p class="text-[10px] text-slate-400">${itemData.desc || ""}</p>
+                    </div>
+                    ${actionBtn}
+                `;
+                itemsList.appendChild(div);
+            });
+        }
+
+        window.useOrEquipItem = async function(itemCode) {
+            if (!player.isAlive) return;
+
+            const items = player.inventory?.items || {};
+            if (!items[itemCode] || items[itemCode] <= 0) {
+                window.showAlert("아이템 수량이 부족합니다.");
+                return;
+            }
+
+            const itemData = ITEMS_DATABASE[itemCode];
+            if (!itemData) return;
+
+            if (itemData.type === "consumable" && itemData.effect === "heal") {
+                player.hp = Math.min(player.maxHp, player.hp + itemData.value);
+                items[itemCode] -= 1;
+                if (items[itemCode] <= 0) delete items[itemCode];
+            } else if (itemData.type === "weapon") {
+                const currentDurability = itemData.maxDurability || 5;
+                player.equippedWeapon = {
+                    itemCode: itemCode,
+                    currentDurability: currentDurability
+                };
+            }
+
+            if (isOfflineMode || !db) {
+                localRoomState.players[localPlayerId] = player;
+                renderInventory();
+                renderGameplayUI(localRoomState);
+                return;
+            }
+
+            const playerRef = ref(db, `rooms/${roomCode}/players/${localPlayerId}`);
+            await update(playerRef, {
+                hp: player.hp,
+                equippedWeapon: player.equippedWeapon,
+                "inventory/items": items
+            });
+            renderInventory();
+        };
+
+        function renderCrafting() {
+            const matSummary = document.getElementById("crafting-materials-summary");
+            const recipeList = document.getElementById("crafting-recipes-list");
+            if (!matSummary || !recipeList) return;
+
+            matSummary.innerHTML = "";
+            const items = player.inventory?.items || {};
+
+            Object.keys(items).forEach(code => {
+                if (items[code] > 0) {
+                    const itemData = ITEMS_DATABASE[code];
+                    const badge = document.createElement("span");
+                    badge.className = "bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-[11px] text-slate-300";
+                    badge.textContent = `${itemData?.name || code}: ${items[code]}개`;
+                    matSummary.appendChild(badge);
+                }
+            });
+
+            recipeList.innerHTML = "";
+            RECIPES.forEach(recipe => {
+                let canCraft = true;
+                let reqText = [];
+
+                Object.keys(recipe.req).forEach(reqCode => {
+                    const reqCount = recipe.req[reqCode];
+                    const hasCount = items[reqCode] || 0;
+                    const reqItemData = ITEMS_DATABASE[reqCode];
+                    reqText.push(`${reqItemData?.name || reqCode} ${hasCount}/${reqCount}`);
+                    if (hasCount < reqCount) canCraft = false;
+                });
+
+                const div = document.createElement("div");
+                div.className = "bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center text-xs";
+                div.innerHTML = `
+                    <div>
+                        <div class="font-bold text-amber-400">${recipe.name}</div>
+                        <div class="text-[10px] text-slate-400 mb-1">${recipe.desc}</div>
+                        <div class="text-[10px] text-slate-500">필요: ${reqText.join(", ")}</div>
+                    </div>
+                    <button onclick="craftItem('${recipe.id}')" ${!canCraft ? 'disabled' : ''} 
+                        class="px-3 py-1.5 rounded-lg text-[11px] font-bold transition ${
+                            canCraft ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                        }">
+                        제작
+                    </button>
+                `;
+                recipeList.appendChild(div);
+            });
+        }
+
+        window.craftItem = async function(recipeId) {
+            const recipe = RECIPES.find(r => r.id === recipeId);
+            if (!recipe) return;
+
+            const items = player.inventory?.items || {};
+
+            for (let reqCode in recipe.req) {
+                if ((items[reqCode] || 0) < recipe.req[reqCode]) {
+                    window.showAlert("재료가 부족합니다.");
+                    return;
+                }
+            }
+
+            for (let reqCode in recipe.req) {
+                items[reqCode] -= recipe.req[reqCode];
+                if (items[reqCode] <= 0) delete items[reqCode];
+            }
+
+            items[recipe.result] = (items[recipe.result] || 0) + 1;
+
+            if (isOfflineMode || !db) {
+                localRoomState.players[localPlayerId].inventory.items = items;
+                renderCrafting();
+                return;
+            }
+
+            const playerRef = ref(db, `rooms/${roomCode}/players/${localPlayerId}`);
+            await update(playerRef, {
+                "inventory/items": items
+            });
+
+            renderCrafting();
+        };
+    </script>
+</body>
+</html>
