@@ -3,1109 +3,565 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>멀티플레이 배틀로얄 TRPG: 최후의 1인</title>
-    <!-- Tailwind CSS CDN -->
+    <title>BATTLE ROYALE RPG</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Firebase JS SDK (v8 / Compatibility Mode) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #090d16;
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f172a;
             color: #f8fafc;
+            user-select: none;
         }
-        ::-webkit-scrollbar {
+        .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
-            height: 6px;
         }
-        ::-webkit-scrollbar-track {
-            background: #0f172a;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
+        .custom-scrollbar::-webkit-scrollbar-thumb {
             background: #475569;
-        }
-        .pulse-danger {
-            animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulse-red {
-            0%, 100% { opacity: 1; border-color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
-            50% { opacity: 0.6; border-color: #7f1d1d; box-shadow: 0 0 5px rgba(127, 29, 29, 0.2); }
+            border-radius: 3px;
         }
     </style>
 </head>
-<body class="bg-slate-950 min-h-screen text-slate-100 flex flex-col justify-between select-none">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
 
-    <!-- Top Header Navigation -->
-    <header class="bg-slate-900/90 border-b border-slate-800 px-4 py-3 sticky top-0 z-40 backdrop-blur flex justify-between items-center">
-        <div class="max-w-7xl mx-auto w-full flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-radio text-red-500 text-2xl animate-pulse"></i>
-                <div>
-                    <h1 class="font-extrabold text-lg sm:text-xl tracking-wider text-slate-100 uppercase flex items-center gap-2">
-                        LAST SURVIVOR <span class="text-xs text-red-400 bg-red-950 px-2 py-0.5 rounded border border-red-800 font-bold">TRPG</span>
-                    </h1>
-                </div>
-            </div>
-            <div id="game-status-bar" class="hidden flex items-center space-x-4 sm:space-x-6 text-xs sm:text-sm">
-                <div class="flex items-center space-x-1.5">
-                    <i class="fa-solid fa-door-closed text-purple-400"></i>
-                    <span class="text-slate-400 hidden sm:inline">방 코드:</span>
-                    <span id="display-room-code" class="font-bold text-purple-400 uppercase tracking-widest text-sm">----</span>
-                </div>
-                <div class="flex items-center space-x-1.5">
-                    <i class="fa-solid fa-users text-amber-400"></i>
-                    <span class="text-slate-400 hidden sm:inline">생존자:</span>
-                    <span id="stat-survivors" class="font-bold text-amber-400 text-sm">0</span>
-                </div>
-                <div class="flex items-center space-x-1.5">
-                    <i class="fa-solid fa-clock text-cyan-400"></i>
-                    <span class="text-slate-400 hidden sm:inline">라운드:</span>
-                    <span id="stat-turn" class="font-bold text-cyan-400 text-sm">1</span>
-                </div>
-            </div>
+    <!-- Header -->
+    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 px-6 py-4 flex justify-between items-center sticky top-0 z-40">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-skull-crossbones text-2xl text-amber-500"></i>
+            <h1 class="text-xl font-extrabold tracking-wider bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
+                BATTLE ROYALE RPG
+            </h1>
+        </div>
+        <div id="connection-status" class="text-xs px-3 py-1 rounded-full bg-slate-700 text-slate-300 font-medium">
+            초기화 중...
         </div>
     </header>
 
-    <!-- Main Content Area -->
-    <main class="max-w-7xl mx-auto w-full p-4 flex-1 flex flex-col justify-center">
+    <!-- Main Container -->
+    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow flex flex-col justify-center">
 
-        <!-- 1. MULTIPLAYER LOBBY SCREEN -->
-        <section id="screen-lobby" class="max-w-md mx-auto w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
-            <div class="text-center">
-                <div class="w-16 h-16 bg-red-950/60 border border-red-800 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg shadow-red-950/50">
-                    <i class="fa-solid fa-skull text-3xl text-red-500"></i>
-                </div>
-                <h2 class="text-xl font-bold text-slate-100">최후의 1인 : TRPG 배틀로얄</h2>
-                <p class="text-xs text-slate-400 mt-1">이름을 입력하고 방에 참가하거나 싱글 플레이를 시작하세요.</p>
-            </div>
-
+        <!-- SCREEN 1: LOBBY (방 입장 / 생성) -->
+        <div id="screen-lobby" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 md:p-8 shadow-2xl max-w-md mx-auto w-full">
+            <h2 class="text-2xl font-bold text-center mb-6 text-slate-100">게임 입장</h2>
+            
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">생존자 닉네임</label>
-                    <input type="text" id="input-nickname" placeholder="닉네임 입력" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-red-500 transition">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">방 코드 (선택)</label>
-                    <input type="text" id="input-room-code" placeholder="예: ROOM123" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 uppercase tracking-widest focus:outline-none focus:border-red-500 transition">
-                </div>
-            </div>
-
-            <div class="space-y-2 pt-2">
-                <button onclick="handleCreateOrJoinRoom(false)" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition text-sm shadow-lg shadow-red-950/50 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-right-to-bracket"></i> 멀티플레이 방 입장 / 생성
-                </button>
-                <button onclick="startSinglePlayerMode()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl transition text-sm border border-slate-700 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-robot text-cyan-400"></i> 싱글 / AI 오프라인 테스트
-                </button>
-            </div>
-        </section>
-
-        <!-- 2. ROOM WAITING LOBBY SCREEN -->
-        <section id="screen-room-waiting" class="hidden max-w-lg mx-auto w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div>
-                    <h2 class="text-lg font-bold text-slate-100">대기실 참가자 목록</h2>
-                    <p class="text-xs text-slate-400">모든 생존자가 준비되면 게임을 시작합니다.</p>
-                </div>
-                <span id="waiting-room-code-badge" class="bg-purple-950 border border-purple-800 text-purple-300 font-bold text-xs px-3 py-1 rounded-full uppercase tracking-wider">ROOM123</span>
-            </div>
-
-            <!-- Player List Container -->
-            <div id="waiting-player-list" class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                <!-- Players dynamically injected here -->
-            </div>
-
-            <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
-                <button onclick="leaveRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-arrow-left"></i> 나가기
-                </button>
-                <button id="btn-host-start" onclick="hostStartGame()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-lg shadow-emerald-950/50 flex items-center gap-2">
-                    <i class="fa-solid fa-play"></i> 게임 시작
-                </button>
-                <div id="waiting-status-msg" class="text-xs text-amber-400 font-semibold animate-pulse flex items-center gap-2">
-                    <i class="fa-solid fa-spinner animate-spin"></i> 방장이 게임을 시작하기를 기다리는 중...
-                </div>
-            </div>
-        </section>
-
-        <!-- 3. GAMEPLAY SCREEN -->
-        <section id="screen-gameplay" class="hidden space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <!-- Left Column: Player Stats & Status -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                            <div>
-                                <h3 id="player-display-name" class="font-extrabold text-base text-slate-100">플레이어</h3>
-                                <p class="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                                    <i class="fa-solid fa-location-dot text-red-400"></i> <span id="player-location-name">중앙 광장</span>
-                                </p>
-                            </div>
-                            <span id="player-status-badge" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-0.5 rounded-full font-bold">생존</span>
-                        </div>
-
-                        <!-- Health Bar -->
-                        <div class="mt-4 space-y-1.5">
-                            <div class="flex justify-between text-xs font-bold">
-                                <span class="text-slate-400">체력 (HP)</span>
-                                <span id="hp-text" class="text-red-400">100 / 100</span>
-                            </div>
-                            <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800 p-0.5">
-                                <div id="hp-bar" class="bg-gradient-to-r from-red-600 to-emerald-500 h-full rounded-full transition-all duration-300" style="width: 100%;"></div>
-                            </div>
-                        </div>
-
-                        <!-- Stats Grid -->
-                        <div class="grid grid-cols-4 gap-2 mt-4 text-center">
-                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                                <div class="text-[10px] text-slate-500 font-semibold">근력</div>
-                                <div id="p-str" class="text-xs font-bold text-amber-400 mt-0.5">10</div>
-                            </div>
-                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                                <div class="text-[10px] text-slate-500 font-semibold">민첩</div>
-                                <div id="p-dex" class="text-xs font-bold text-cyan-400 mt-0.5">10</div>
-                            </div>
-                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                                <div class="text-[10px] text-slate-500 font-semibold">지능</div>
-                                <div id="p-int" class="text-xs font-bold text-purple-400 mt-0.5">10</div>
-                            </div>
-                            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                                <div class="text-[10px] text-slate-500 font-semibold">운</div>
-                                <div id="p-luck" class="text-xs font-bold text-emerald-400 mt-0.5">10</div>
-                            </div>
-                        </div>
-
-                        <!-- Equipped Items -->
-                        <div class="mt-4 space-y-2 text-xs">
-                            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
-                                <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-gavel text-amber-500"></i> 주 무기</span>
-                                <span id="equip-weapon" class="font-bold text-amber-300">맨손</span>
-                            </div>
-                            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
-                                <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-shield text-cyan-500"></i> 방어구</span>
-                                <span id="equip-armor" class="font-bold text-cyan-300">일반 의류</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action Phase Selectors -->
-                    <div class="space-y-2 pt-3 border-t border-slate-800">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-xs font-bold text-slate-300">이번 라운드 행동 선택</span>
-                            <span id="action-lock-status" class="text-[10px] text-amber-400 font-semibold">선택 대기중</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <button onclick="selectTurnAction('scavenge')" class="bg-slate-800 hover:bg-slate-700 active:bg-cyan-900 border border-slate-700 p-2.5 rounded-xl text-xs font-bold text-cyan-300 flex flex-col items-center gap-1 transition">
-                                <i class="fa-solid fa-magnifying-glass text-sm"></i> 수색
-                            </button>
-                            <button onclick="selectTurnAction('rest')" class="bg-slate-800 hover:bg-slate-700 active:bg-emerald-900 border border-slate-700 p-2.5 rounded-xl text-xs font-bold text-emerald-300 flex flex-col items-center gap-1 transition">
-                                <i class="fa-solid fa-heart-pulse text-sm"></i> 휴식
-                            </button>
-                            <button onclick="selectTurnAction('attack')" class="bg-slate-800 hover:bg-slate-700 active:bg-red-900 border border-slate-700 p-2.5 rounded-xl text-xs font-bold text-red-300 flex flex-col items-center gap-1 transition">
-                                <i class="fa-solid fa-crosshairs text-sm"></i> 공격
-                            </button>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 pt-1">
-                            <button onclick="openInventoryModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 py-2 px-3 rounded-xl text-xs font-bold text-slate-200 flex items-center justify-center gap-1.5 transition">
-                                <i class="fa-solid fa-briefcase text-amber-400"></i> 소지품
-                            </button>
-                            <button onclick="openCraftingModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 py-2 px-3 rounded-xl text-xs font-bold text-slate-200 flex items-center justify-center gap-1.5 transition">
-                                <i class="fa-solid fa-hammer text-purple-400"></i> 아이템 제작
-                            </button>
-                        </div>
-                    </div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">플레이어 이름</label>
+                    <input type="text" id="input-nickname" maxlength="10" placeholder="닉네임을 입력하세요" 
+                           class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-amber-500 transition">
                 </div>
 
-                <!-- Center & Right: Map Grid & Live Logs -->
-                <div class="lg:col-span-2 space-y-6 flex flex-col justify-between">
+                <div class="pt-4 border-t border-slate-700/50 flex flex-col gap-3">
+                    <button id="btn-create-room" onclick="createRoom()" 
+                            class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3.5 rounded-xl transition shadow-lg shadow-amber-500/20 active:scale-[0.98]">
+                        새 방 만들기
+                    </button>
                     
-                    <!-- Map Zones Grid -->
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-                        <div class="flex justify-between items-center">
-                            <h3 class="font-extrabold text-sm text-slate-100 flex items-center gap-2">
-                                <i class="fa-solid fa-map-location-dot text-cyan-400"></i> 생존 구역 지도
-                            </h3>
-                            <span class="text-[10px] text-slate-400">구역 카드를 클릭하여 이동</span>
-                        </div>
-                        <div id="map-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            <!-- Dynamically generated map zone cards -->
-                        </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="input-room-code" maxlength="6" placeholder="방 코드 (6자리)" 
+                               class="w-2/3 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-center tracking-widest font-mono text-slate-100 uppercase focus:outline-none focus:border-amber-500">
+                        <button onclick="joinRoom()" 
+                                class="w-1/3 bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold py-3 rounded-xl transition active:scale-[0.98]">
+                            참가
+                        </button>
                     </div>
-
-                    <!-- Realtime Action Event Logs -->
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 flex-1 flex flex-col justify-between min-h-[220px]">
-                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                            <h3 class="font-extrabold text-sm text-slate-100 flex items-center gap-2">
-                                <i class="fa-solid fa-scroll text-amber-400"></i> 전장 기록 (로그)
-                            </h3>
-                            <span class="text-[10px] text-slate-500">실시간 매칭 상태</span>
-                        </div>
-                        <div id="event-log-container" class="font-mono text-xs text-slate-300 space-y-1 overflow-y-auto max-h-48 pr-2 flex-1">
-                            <!-- Dynamic log messages -->
-                        </div>
-                    </div>
-
                 </div>
             </div>
-        </section>
+        </div>
+
+        <!-- SCREEN 2: WAITING ROOM (대기실) -->
+        <div id="screen-room-waiting" class="hidden bg-slate-800 border border-slate-700 rounded-2xl p-6 md:p-8 shadow-2xl w-full">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-700 mb-6">
+                <div>
+                    <span class="text-xs font-semibold text-amber-500 tracking-wider uppercase">Lobby Room</span>
+                    <h2 class="text-2xl font-bold text-slate-100 flex items-center gap-2">
+                        대기실 참가자 목록
+                    </h2>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl text-center">
+                        <span class="text-xs text-slate-400 block">방 코드</span>
+                        <span id="display-room-code" class="text-lg font-mono font-bold text-amber-400">------</span>
+                    </div>
+                    <button onclick="leaveRoom()" class="bg-slate-700 hover:bg-red-500/20 hover:text-red-400 text-slate-300 px-4 py-2 rounded-xl text-sm transition">
+                        나가기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 참가자 카드가 출력되는 영역 -->
+            <div id="waiting-player-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                <!-- JS에서 동적으로 Player Card가 삽입됩니다 -->
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                <p id="waiting-status-text" class="text-sm text-slate-400 text-center sm:text-left">
+                    방장이 게임을 시작하기를 기다리는 중...
+                </p>
+                <button id="btn-start-game" onclick="startGame()" disabled 
+                        class="w-full sm:w-auto px-8 py-3 bg-amber-500 disabled:bg-slate-700 disabled:text-slate-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl transition shadow-lg active:scale-[0.98]">
+                    게임 시작
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: GAMEPLAY (게임 진행) -->
+        <div id="screen-gameplay" class="hidden flex flex-col gap-6">
+            <!-- Phase & Status Bar -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 flex justify-between items-center">
+                <div>
+                    <span id="game-phase-text" class="text-xs font-bold text-amber-500 uppercase tracking-wider">탐색 페이즈</span>
+                    <h3 id="game-turn-info" class="text-lg font-bold text-slate-100">턴 1</h3>
+                </div>
+                <div id="player-alive-count" class="text-sm font-semibold text-slate-300 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700">
+                    생존자: - / -
+                </div>
+            </div>
+
+            <!-- 플레이어 카드 리스트 -->
+            <div id="game-players-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- 게임 상태 카드 동적 생성 -->
+            </div>
+
+            <!-- 액션 패널 -->
+            <div id="game-action-panel" class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-wrap gap-3 justify-center">
+                <button onclick="takeAction('explore')" class="flex-1 min-w-[120px] bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 px-4 rounded-xl transition">
+                    🔍 지역 탐색
+                </button>
+                <button onclick="takeAction('rest')" class="flex-1 min-w-[120px] bg-emerald-600 hover:bg-emerald-500 text-slate-100 font-bold py-3 px-4 rounded-xl transition">
+                    🏕️ 휴식 (HP 회복)
+                </button>
+                <button onclick="openInventory()" class="flex-1 min-w-[120px] bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold py-3 px-4 rounded-xl transition">
+                    🎒 인벤토리
+                </button>
+            </div>
+
+            <!-- 게임 로그 -->
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 h-48 flex flex-col">
+                <span class="text-xs font-bold text-slate-500 mb-2 block">활동 로그</span>
+                <div id="game-log-box" class="flex-grow overflow-y-auto custom-scrollbar text-sm space-y-1 text-slate-300 font-mono">
+                    <!-- 로그 메시지 출력 -->
+                </div>
+            </div>
+        </div>
 
     </main>
 
-    <!-- Modal: Inventory -->
-    <div id="modal-inventory" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-slate-100 flex items-center gap-2">
-                    <i class="fa-solid fa-briefcase text-amber-400"></i> 인벤토리 및 장비
-                </h3>
-                <button onclick="closeModal('modal-inventory')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div id="inventory-equipped-list" class="space-y-2">
-                <!-- Equipped items details -->
-            </div>
-            <div class="border-t border-slate-800 pt-3">
-                <h4 class="text-xs font-bold text-slate-400 mb-2">보유 아이템</h4>
-                <div id="inventory-items-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    <!-- Inventory items -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Crafting -->
-    <div id="modal-crafting" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-slate-100 flex items-center gap-2">
-                    <i class="fa-solid fa-hammer text-purple-400"></i> 생존 아이템 제작
-                </h3>
-                <button onclick="closeModal('modal-crafting')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div>
-                <h4 class="text-xs font-bold text-slate-400 mb-1.5">보유 재료</h4>
-                <div id="crafting-materials-summary" class="flex flex-wrap gap-1.5 min-h-[28px]">
-                    <!-- Crafting materials badges -->
-                </div>
-            </div>
-            <div class="border-t border-slate-800 pt-3">
-                <h4 class="text-xs font-bold text-slate-400 mb-2">제작 레시피 목록</h4>
-                <div id="crafting-recipes-list" class="space-y-2 max-h-52 overflow-y-auto pr-1">
-                    <!-- Recipes -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Custom Alert / Toast Modal -->
+    <!-- Custom Modal System (Alert replacement) -->
     <div id="modal-alert" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xs w-full p-5 text-center space-y-4 shadow-2xl">
-            <div class="w-12 h-12 bg-amber-950/80 border border-amber-700 rounded-full flex items-center justify-center mx-auto text-amber-400 text-xl">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <p id="alert-message-text" class="text-xs sm:text-sm text-slate-200 font-medium">경고 메시지입니다.</p>
-            <button onclick="closeModal('modal-alert')" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2 rounded-xl transition">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4">
+            <i id="alert-icon" class="fa-solid fa-circle-info text-3xl text-amber-500"></i>
+            <p id="alert-message" class="text-slate-200 font-medium">알림 메시지</p>
+            <button onclick="closeAlert()" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold py-2.5 rounded-xl transition">
                 확인
             </button>
         </div>
     </div>
 
-    <!-- Firebase and Main Game Script -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    <!-- Inventory Modal -->
+    <div id="modal-inventory" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 class="text-lg font-bold text-slate-100">🎒 인벤토리</h3>
+                <button onclick="closeInventory()" class="text-slate-400 hover:text-slate-100"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div id="inventory-item-list" class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                <!-- 아이템 리스트 -->
+            </div>
+        </div>
+    </div>
 
+    <footer class="py-4 text-center text-xs text-slate-500">
+        Battle Royale RPG &copy; 2026. Powered by Firebase Realtime DB.
+    </footer>
+
+    <!-- MAIN GAME SCRIPT -->
+    <script>
+        // ====================================================
+        // Firebase Configuration (적용 완료)
+        // ====================================================
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            databaseURL: "YOUR_DATABASE_URL",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyAc5sFR859k7BldgRr5w6wfMGfol3Awi3w",
+            authDomain: "mfserver-cd778.firebaseapp.com",
+            databaseURL: "https://mfserver-cd778-default-rtdb.firebaseio.com",
+            projectId: "mfserver-cd778",
+            storageBucket: "mfserver-cd778.firebasestorage.app",
+            messagingSenderId: "3964648295",
+            appId: "1:3964648295:web:04a34338c9701bac5f3c62",
+            measurementId: "G-RLXTD2X2F9"
         };
 
+        // App States
         let db = null;
-        let isOfflineMode = false;
+        let isFirebaseAvailable = false;
+        let currentRoomCode = null;
+        let myPlayerId = null;
+        let isHost = false;
+        let roomRef = null;
+        let roomData = null;
 
+        // Custom Modal Alert Helper
+        function showAlert(msg, iconClass = "fa-circle-info text-amber-500") {
+            const modal = document.getElementById("modal-alert");
+            const msgEl = document.getElementById("alert-message");
+            const iconEl = document.getElementById("alert-icon");
+            if (msgEl) msgEl.innerText = msg;
+            if (iconEl) iconEl.className = `fa-solid ${iconClass} text-3xl`;
+            if (modal) modal.classList.remove("hidden");
+        }
+
+        function closeAlert() {
+            const modal = document.getElementById("modal-alert");
+            if (modal) modal.classList.add("hidden");
+        }
+
+        // Initialize Firebase
         try {
-            if (firebaseConfig.apiKey !== "YOUR_API_KEY" && firebaseConfig.databaseURL !== "YOUR_DATABASE_URL") {
-                const app = initializeApp(firebaseConfig);
-                db = getDatabase(app);
-            } else {
-                console.warn("Firebase 설정이 연결되지 않았으므로 오프라인/테스트 모드로 전환됩니다.");
-                isOfflineMode = true;
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
             }
-        } catch (err) {
-            console.error("Firebase 초기화 오류:", err);
-            isOfflineMode = true;
+            db = firebase.database();
+            isFirebaseAvailable = true;
+            document.getElementById("connection-status").innerText = "온라인 (Firebase 연결됨)";
+            document.getElementById("connection-status").className = "text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium";
+        } catch (e) {
+            console.warn("Firebase Init failed. Fallback to Local Mode:", e);
+            document.getElementById("connection-status").innerText = "오프라인 (로컬 테스트 모드)";
+            document.getElementById("connection-status").className = "text-xs px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-medium";
         }
 
-        const ZONES = [
-            { id: 0, name: "중앙 광장", desc: "물자가 다수 존재하지만 위험한 지역입니다.", icon: "fa-monument", specialItem: "ITEM_MEDKIT" },
-            { id: 1, name: "폐허 연구소", desc: "고성능 파츠와 장비를 얻을 수 있습니다.", icon: "fa-flask", specialItem: "ITEM_PARTS" },
-            { id: 2, name: "버려진 주택가", desc: "기본적인 생존 물자를 수집하기 좋습니다.", icon: "fa-house", specialItem: "ITEM_BANDAGE" },
-            { id: 3, name: "군사 기지", desc: "강력한 군용 무기가 숨겨져 있습니다.", icon: "fa-shield-halved", specialItem: "ITEM_COMBAT_KNIFE" },
-            { id: 4, name: "음침한 숲", desc: "몸을 숨기기 쉽고 자연 재료가 풍부합니다.", icon: "fa-tree", specialItem: "ITEM_HARD_WOOD" },
-            { id: 5, name: "항구 창고", desc: "철재와 금속 부품을 찾을 수 있습니다.", icon: "fa-warehouse", specialItem: "ITEM_SCRAP_IRON" }
-        ];
+        // Helper: Generate 6-digit Code
+        function generateRoomCode() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
 
-        const ITEMS_DATABASE = {
-            "ITEM_MEDKIT": { code: "ITEM_MEDKIT", name: "구급상자", type: "consumable", effect: "heal", value: 50, desc: "HP를 50 회복합니다." },
-            "ITEM_BANDAGE": { code: "ITEM_BANDAGE", name: "붕대", type: "consumable", effect: "heal", value: 20, desc: "HP를 20 회복합니다." },
-            "ITEM_COMBAT_KNIFE": { code: "ITEM_COMBAT_KNIFE", name: "군용 칼", type: "weapon", atk: 15, maxDurability: 5, desc: "공격력을 상승시킵니다. (+15, 내구도 5)" },
-            "ITEM_PARTS": { code: "ITEM_PARTS", name: "고성능 파츠", type: "material", desc: "고급 제작 재료" },
-            "ITEM_HARD_WOOD": { code: "ITEM_HARD_WOOD", name: "단단한 목재", type: "material", desc: "제작 재료" },
-            "ITEM_SCRAP_IRON": { code: "ITEM_SCRAP_IRON", name: "고철 조각", type: "material", desc: "제작 재료" }
-        };
+        // Helper: Random ID
+        function generateId() {
+            return 'p_' + Math.random().toString(36).substr(2, 9);
+        }
 
-        const RECIPES = [
-            { id: "RECIPE_KNIFE", name: "개량형 단검", result: "ITEM_COMBAT_KNIFE", req: { "ITEM_SCRAP_IRON": 2, "ITEM_HARD_WOOD": 1 }, desc: "공격력 +15 무기 (내구도 5)" },
-            { id: "RECIPE_MEDKIT", name: "응급 키트", result: "ITEM_MEDKIT", req: { "ITEM_BANDAGE": 2 }, desc: "HP 50 회복 아이템" }
-        ];
-
-        let roomCode = "ROOM123";
-        let localPlayerId = "player_" + Math.random().toString(36).substring(2, 8);
-        let isHost = true;
-
-        let player = {
-            id: localPlayerId,
-            name: "생존자",
-            hp: 100,
-            maxHp: 100,
-            location: 0,
-            isAlive: true,
-            equippedWeapon: null,
-            equippedArmor: null,
-            inventory: { items: { "ITEM_BANDAGE": 2 } },
-            selectedAction: null
-        };
-
-        let stats = { str: 10, dex: 10, int: 10, luck: 10 };
-
-        let localRoomState = {
-            roomCode: roomCode,
-            status: "waiting",
-            turn: 1,
-            restrictedZones: [],
-            logs: [`전장에 개설되었습니다. (로컬/싱글 모드)`],
-            players: {
-                [localPlayerId]: {
-                    ...player,
-                    stats: stats,
-                    isHost: true
-                },
-                "bot_1": {
-                    id: "bot_1",
-                    name: "AI_생존자1",
-                    hp: 100,
-                    maxHp: 100,
-                    location: 1,
-                    isAlive: true,
-                    equippedWeapon: null,
-                    equippedArmor: null,
-                    inventory: { items: {} },
-                    stats: { str: 8, dex: 8, int: 8, luck: 8 },
-                    isHost: false
-                },
-                "bot_2": {
-                    id: "bot_2",
-                    name: "AI_생존자2",
-                    hp: 100,
-                    maxHp: 100,
-                    location: 2,
-                    isAlive: true,
-                    equippedWeapon: null,
-                    equippedArmor: null,
-                    inventory: { items: {} },
-                    stats: { str: 9, dex: 9, int: 9, luck: 9 },
-                    isHost: false
-                }
-            }
-        };
-
-        const getRoomRef = () => (db ? ref(db, `rooms/${roomCode}`) : null);
-
-        window.showAlert = function(msg) {
-            const msgEl = document.getElementById("alert-message-text");
-            const modalEl = document.getElementById("modal-alert");
-            if (msgEl && modalEl) {
-                msgEl.textContent = msg;
-                modalEl.classList.remove("hidden");
-            }
-        };
-
-        window.handleCreateOrJoinRoom = async function(isSinglePlayer = false) {
-            const nickInput = document.getElementById("input-nickname")?.value.trim();
-            const roomInput = document.getElementById("input-room-code")?.value.trim();
-
-            if (nickInput) {
-                player.name = nickInput;
-                if (localRoomState.players[localPlayerId]) {
-                    localRoomState.players[localPlayerId].name = nickInput;
-                }
-            }
-
-            if (roomInput) {
-                roomCode = roomInput.toUpperCase();
-                localRoomState.roomCode = roomCode;
-            }
-
-            document.getElementById("screen-lobby")?.classList.add("hidden");
-            document.getElementById("screen-room-waiting")?.classList.remove("hidden");
-
-            const badge = document.getElementById("waiting-room-code-badge");
-            if (badge) badge.textContent = roomCode;
-
-            if (isOfflineMode || !db) {
-                renderWaitingRoom(localRoomState);
+        // Create Room
+        function createRoom() {
+            const nicknameInput = document.getElementById("input-nickname");
+            const name = nicknameInput ? nicknameInput.value.trim() : "";
+            
+            if (!name) {
+                showAlert("닉네임을 입력해 주세요!");
                 return;
             }
 
-            try {
-                const joined = await joinRoomInFirestore();
-                if (!joined) {
-                    await createRoomInFirestore();
-                    isHost = true;
-                }
-                listenToRoomUpdates();
-            } catch (err) {
-                console.error("Firebase 연결 실패, 오프라인 모드로 전환합니다.", err);
-                isOfflineMode = true;
-                renderWaitingRoom(localRoomState);
-            }
-        };
+            myPlayerId = generateId();
+            isHost = true;
 
-        window.startSinglePlayerMode = function() {
-            isOfflineMode = true;
-            window.handleCreateOrJoinRoom(true);
-        };
+            if (isFirebaseAvailable && db) {
+                currentRoomCode = generateRoomCode();
+                roomRef = db.ref("rooms/" + currentRoomCode);
 
-        async function createRoomInFirestore() {
-            if (isOfflineMode || !db) return;
-            const roomRef = getRoomRef();
-            const initialRoomData = {
-                roomCode: roomCode,
-                status: "waiting",
-                turn: 1,
-                restrictedZones: [],
-                logs: [`방 [${roomCode}]이(가) 생겼습니다.`],
-                players: {
-                    [localPlayerId]: {
-                        ...player,
-                        stats: stats,
-                        isHost: true
-                    }
-                }
-            };
-            await set(roomRef, initialRoomData);
-        }
-
-        async function joinRoomInFirestore() {
-            if (isOfflineMode || !db) return false;
-            const roomRef = getRoomRef();
-            const snapshot = await get(roomRef);
-
-            if (!snapshot.exists()) return false;
-
-            const roomData = snapshot.val();
-            if (roomData.status !== "waiting") {
-                window.showAlert("이미 진행 중인 게임입니다.");
-                return false;
-            }
-
-            const playerRef = ref(db, `rooms/${roomCode}/players/${localPlayerId}`);
-            await set(playerRef, {
-                ...player,
-                stats: stats,
-                isHost: false
-            });
-
-            return true;
-        }
-
-        function listenToRoomUpdates() {
-            if (isOfflineMode || !db) return;
-            const roomRef = getRoomRef();
-            onValue(roomRef, (snapshot) => {
-                if (!snapshot.exists()) return;
-
-                const roomData = snapshot.val();
-                renderWaitingRoom(roomData);
-                renderGameplayUI(roomData);
-
-                if (roomData.status === "playing") {
-                    document.getElementById("screen-room-waiting")?.classList.add("hidden");
-                    document.getElementById("screen-gameplay")?.classList.remove("hidden");
-                    document.getElementById("game-status-bar")?.classList.remove("hidden");
-                }
-            });
-        }
-
-        function renderWaitingRoom(roomData) {
-            const playerListEl = document.getElementById("waiting-player-list");
-            if (!playerListEl) return;
-
-            playerListEl.innerHTML = "";
-
-            const players = roomData.players || {};
-            Object.values(players).forEach((p) => {
-                const card = document.createElement("div");
-                card.className = "bg-slate-950 border border-slate-800 p-3 rounded-xl flex items-center justify-between";
-                card.innerHTML = `
-                    <div class="flex items-center space-x-2">
-                        <i class="fa-solid fa-user text-slate-400"></i>
-                        <span class="font-bold text-sm text-slate-200">${p.name}</span>
-                        ${p.isHost ? '<span class="text-[10px] bg-red-950 text-red-400 border border-red-800 px-1.5 py-0.5 rounded font-bold">방장</span>' : ''}
-                    </div>
-                    <span class="text-xs text-slate-400">HP ${p.hp}/${p.maxHp}</span>
-                `;
-                playerListEl.appendChild(card);
-            });
-
-            const hostStartBtn = document.getElementById("btn-host-start");
-            const waitingMsg = document.getElementById("waiting-status-msg");
-
-            if (isHost) {
-                hostStartBtn?.classList.remove("hidden");
-                waitingMsg?.classList.add("hidden");
-            } else {
-                hostStartBtn?.classList.add("hidden");
-                waitingMsg?.classList.remove("hidden");
-            }
-        }
-
-        window.hostStartGame = async function() {
-            if (!isHost) return;
-
-            if (isOfflineMode || !db) {
-                localRoomState.status = "playing";
-                document.getElementById("screen-room-waiting")?.classList.add("hidden");
-                document.getElementById("screen-gameplay")?.classList.remove("hidden");
-                document.getElementById("game-status-bar")?.classList.remove("hidden");
-                renderGameplayUI(localRoomState);
-                return;
-            }
-
-            const roomRef = getRoomRef();
-            await update(roomRef, { status: "playing" });
-        };
-
-        window.leaveRoom = function() {
-            location.reload();
-        };
-
-        function renderGameplayUI(roomData) {
-            const players = roomData.players || {};
-            const me = players[localPlayerId];
-
-            if (me) {
-                player = me;
-                const nameEl = document.getElementById("player-display-name");
-                if (nameEl) nameEl.textContent = me.name;
-
-                const locEl = document.getElementById("player-location-name");
-                if (locEl) locEl.textContent = ZONES[me.location]?.name || "알 수 없음";
-
-                const hpTextEl = document.getElementById("hp-text");
-                if (hpTextEl) hpTextEl.textContent = `${me.hp} / ${me.maxHp}`;
-                
-                const hpBarEl = document.getElementById("hp-bar");
-                if (hpBarEl) {
-                    const hpPercent = Math.max(0, Math.min(100, (me.hp / me.maxHp) * 100));
-                    hpBarEl.style.width = `${hpPercent}%`;
-                }
-
-                const wEl = document.getElementById("equip-weapon");
-                if (wEl) {
-                    if (me.equippedWeapon) {
-                        const wData = ITEMS_DATABASE[me.equippedWeapon.itemCode];
-                        wEl.textContent = `${wData?.name || "무기"} (${me.equippedWeapon.currentDurability}/${wData?.maxDurability || 5})`;
-                    } else {
-                        wEl.textContent = "맨손";
-                    }
-                }
-
-                const armEl = document.getElementById("equip-armor");
-                if (armEl) armEl.textContent = me.equippedArmor || "일반 의류";
-
-                if (me.stats) {
-                    if (document.getElementById("p-str")) document.getElementById("p-str").textContent = me.stats.str;
-                    if (document.getElementById("p-dex")) document.getElementById("p-dex").textContent = me.stats.dex;
-                    if (document.getElementById("p-int")) document.getElementById("p-int").textContent = me.stats.int;
-                    if (document.getElementById("p-luck")) document.getElementById("p-luck").textContent = me.stats.luck;
-                }
-
-                const statusBadge = document.getElementById("player-status-badge");
-                if (statusBadge) {
-                    if (me.isAlive) {
-                        statusBadge.textContent = "생존";
-                        statusBadge.className = "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-0.5 rounded-full font-bold";
-                    } else {
-                        statusBadge.textContent = "사망";
-                        statusBadge.className = "text-[10px] bg-red-950 text-red-500 border border-red-800 px-2.5 py-0.5 rounded-full font-bold animate-pulse";
-                    }
-                }
-
-                const lockStatus = document.getElementById("action-lock-status");
-                if (lockStatus) {
-                    if (me.selectedAction) {
-                        lockStatus.textContent = `선택 완료 (${me.selectedAction})`;
-                        lockStatus.className = "text-[10px] text-emerald-400 font-semibold";
-                    } else {
-                        lockStatus.textContent = "선택 대기중";
-                        lockStatus.className = "text-[10px] text-amber-400 font-semibold";
-                    }
-                }
-            }
-
-            if (document.getElementById("display-room-code")) document.getElementById("display-room-code").textContent = roomCode;
-            if (document.getElementById("stat-turn")) document.getElementById("stat-turn").textContent = roomData.turn || 1;
-
-            const aliveCount = Object.values(players).filter(p => p.isAlive).length;
-            if (document.getElementById("stat-survivors")) document.getElementById("stat-survivors").textContent = aliveCount;
-
-            renderMap(roomData);
-            renderLogs(roomData.logs || []);
-        }
-
-        function renderMap(roomData) {
-            const gridEl = document.getElementById("map-grid");
-            if (!gridEl) return;
-            gridEl.innerHTML = "";
-
-            const restricted = roomData.restrictedZones || [];
-            const players = roomData.players || {};
-
-            ZONES.forEach((zone) => {
-                const isRestricted = restricted.includes(zone.id);
-                const playersInZone = Object.values(players).filter(p => p.isAlive && p.location === zone.id);
-                const isMyZone = player.location === zone.id;
-
-                const zoneCard = document.createElement("div");
-                zoneCard.className = `p-3 rounded-xl border flex flex-col justify-between transition cursor-pointer relative overflow-hidden ${
-                    isRestricted 
-                        ? 'bg-red-950/40 border-red-800/80 pulse-danger' 
-                        : isMyZone 
-                            ? 'bg-slate-800 border-cyan-500 shadow-md shadow-cyan-950/50' 
-                            : 'bg-slate-900 border-slate-800 hover:border-slate-700'
-                }`;
-
-                zoneCard.onclick = () => moveZone(zone.id);
-
-                let badgeMarkup = isRestricted 
-                    ? `<span class="text-[9px] bg-red-950 text-red-400 border border-red-800 px-1.5 py-0.5 rounded font-bold uppercase">금지 구역</span>`
-                    : `<span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded font-bold uppercase">안전</span>`;
-
-                let playerIcons = playersInZone.map(p => 
-                    `<span class="inline-block bg-slate-800 border border-slate-600 rounded px-1 text-[10px] text-amber-300 font-bold">${p.name}</span>`
-                ).join(" ");
-
-                zoneCard.innerHTML = `
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="font-bold text-xs text-slate-100 flex items-center gap-1.5">
-                                <i class="fa-solid ${zone.icon} text-slate-400"></i> ${zone.name}
-                            </span>
-                            ${badgeMarkup}
-                        </div>
-                        <p class="text-[10px] text-slate-400 line-clamp-1">${zone.desc}</p>
-                    </div>
-                    <div class="mt-2 pt-1.5 border-t border-slate-800/60 flex items-center justify-between text-[10px]">
-                        <span class="text-slate-500">생존자 (${playersInZone.length})</span>
-                        <div class="flex gap-1 overflow-hidden">${playerIcons}</div>
-                    </div>
-                `;
-
-                gridEl.appendChild(zoneCard);
-            });
-        }
-
-        async function moveZone(zoneId) {
-            if (!player.isAlive) return;
-
-            if (isOfflineMode || !db) {
-                localRoomState.players[localPlayerId].location = zoneId;
-                renderGameplayUI(localRoomState);
-                return;
-            }
-
-            const playerRef = ref(db, `rooms/${roomCode}/players/${localPlayerId}`);
-            await update(playerRef, { location: zoneId });
-        }
-
-        window.selectTurnAction = async function(actionType) {
-            if (!player.isAlive) {
-                window.showAlert("사망한 상태에서는 행동할 수 없습니다.");
-                return;
-            }
-
-            if (isOfflineMode || !db) {
-                localRoomState.players[localPlayerId].selectedAction = actionType;
-                
-                Object.values(localRoomState.players).forEach(p => {
-                    if (p.id !== localPlayerId && p.isAlive) {
-                        const actions = ['scavenge', 'rest', 'attack'];
-                        p.selectedAction = actions[Math.floor(Math.random() * actions.length)];
-                    }
-                });
-
-                resolveTurnLogic(localRoomState);
-                renderGameplayUI(localRoomState);
-                return;
-            }
-
-            const playerRef = ref(db, `rooms/${roomCode}/players/${localPlayerId}`);
-            await update(playerRef, { selectedAction: actionType });
-
-            checkAndResolveTurn();
-        };
-
-        async function checkAndResolveTurn() {
-            if (!isHost || isOfflineMode || !db) return;
-
-            const roomRef = getRoomRef();
-            const snapshot = await get(roomRef);
-            if (!snapshot.exists()) return;
-
-            const roomData = snapshot.val();
-            const players = roomData.players || {};
-            const alivePlayers = Object.values(players).filter(p => p.isAlive);
-
-            const allReady = alivePlayers.every(p => p.selectedAction !== null && p.selectedAction !== undefined);
-
-            if (allReady && alivePlayers.length > 0) {
-                resolveTurnLogic(roomData);
-            }
-        }
-
-        async function resolveTurnLogic(roomData) {
-            let players = roomData.players;
-            let logs = roomData.logs || [];
-            let currentTurn = roomData.turn || 1;
-            let restrictedZones = roomData.restrictedZones || [];
-
-            logs.push(`\n=== [라운드 ${currentTurn} 결과] ===`);
-
-            Object.keys(players).forEach((id) => {
-                let p = players[id];
-                if (!p.isAlive) return;
-
-                if (p.selectedAction === 'scavenge') {
-                    const zone = ZONES[p.location];
-                    const itemCode = zone.specialItem;
-                    const itemInfo = ITEMS_DATABASE[itemCode];
-
-                    p.inventory = p.inventory || { items: {} };
-                    p.inventory.items = p.inventory.items || {};
-
-                    p.inventory.items[itemCode] = (p.inventory.items[itemCode] || 0) + 1;
-                    logs.push(`🔍 [${p.name}]이(가) ${zone.name}에서 [${itemInfo?.name || itemCode}]을(를) 탐색해 획득했습니다.`);
-                } else if (p.selectedAction === 'rest') {
-                    const healAmt = 25;
-                    p.hp = Math.min(p.maxHp, p.hp + healAmt);
-                    logs.push(`💚 [${p.name}]이(가) 휴식을 취해 HP를 ${healAmt} 회복했습니다.`);
-                } else if (p.selectedAction === 'attack') {
-                    const enemies = Object.values(players).filter(e => e.isAlive && e.id !== p.id && e.location === p.location);
-                    if (enemies.length > 0) {
-                        const target = enemies[Math.floor(Math.random() * enemies.length)];
-                        
-                        let weaponAtk = 5;
-                        let weaponName = "맨손";
-
-                        if (p.equippedWeapon) {
-                            const wData = ITEMS_DATABASE[p.equippedWeapon.itemCode];
-                            weaponAtk = wData?.atk || 15;
-                            weaponName = wData?.name || "무기";
-                            p.equippedWeapon.currentDurability -= 1;
+                const initialData = {
+                    code: currentRoomCode,
+                    status: "waiting", // waiting, playing, ended
+                    hostId: myPlayerId,
+                    players: {
+                        [myPlayerId]: {
+                            id: myPlayerId,
+                            name: name,
+                            hp: 100,
+                            maxHp: 100,
+                            atk: 15,
+                            def: 5,
+                            isHost: true,
+                            isAlive: true,
+                            items: []
                         }
-
-                        const strBonus = Math.floor((p.stats?.str || 10) / 2);
-                        const dmg = weaponAtk + strBonus;
-
-                        target.hp -= dmg;
-                        logs.push(`⚔️ [${p.name}]이(가) [${weaponName}]으로 [${target.name}]에게 ${dmg} 데미지를 입혔습니다!`);
-
-                        if (p.equippedWeapon && p.equippedWeapon.currentDurability <= 0) {
-                            logs.push(`💥 [${p.name}]의 [${weaponName}] 내구도가 다하여 파괴되었습니다!`);
-                            const itemCode = p.equippedWeapon.itemCode;
-                            if (p.inventory?.items[itemCode] > 0) {
-                                p.inventory.items[itemCode] -= 1;
-                                if (p.inventory.items[itemCode] <= 0) delete p.inventory.items[itemCode];
-                            }
-
-                            if (p.inventory?.items[itemCode] > 0) {
-                                p.equippedWeapon.currentDurability = ITEMS_DATABASE[itemCode].maxDurability || 5;
-                                logs.push(`🔄 [${p.name}]이(가) 새 무기를 자동 장착했습니다.`);
-                            } else {
-                                p.equippedWeapon = null;
-                            }
-                        }
-
-                        if (target.hp <= 0) {
-                            target.hp = 0;
-                            target.isAlive = false;
-                            logs.push(`💀 [${target.name}]이(가) 쓰러졌습니다!`);
-                        }
-                    } else {
-                        logs.push(`⚔️ [${p.name}]이(가) 공격하려 했으나 구역에 적이 없었습니다.`);
-                    }
-                }
-
-                p.selectedAction = null;
-            });
-
-            if (currentTurn % 2 === 0 && restrictedZones.length < ZONES.length - 1) {
-                let available = ZONES.map(z => z.id).filter(id => !restrictedZones.includes(id));
-                if (available.length > 0) {
-                    let newlyRestricted = available[Math.floor(Math.random() * available.length)];
-                    restrictedZones.push(newlyRestricted);
-                    logs.push(`🚨 [경고] ${ZONES[newlyRestricted].name} 구역이 금지 구역이 되었습니다!`);
-
-                    Object.keys(players).forEach((id) => {
-                        let p = players[id];
-                        if (p.isAlive && p.location === newlyRestricted) {
-                            p.hp -= 40;
-                            logs.push(`⚠️ [${p.name}]이(가) 금지 구역에서 40 데미지를 입었습니다!`);
-                            if (p.hp <= 0) {
-                                p.hp = 0;
-                                p.isAlive = false;
-                                logs.push(`💀 [${p.name}]이(가) 자기장에 탈락했습니다!`);
-                            }
-                        }
-                    });
-                }
-            }
-
-            if (isOfflineMode || !db) {
-                localRoomState.turn = currentTurn + 1;
-                localRoomState.restrictedZones = restrictedZones;
-                return;
-            }
-
-            const roomRef = getRoomRef();
-            await update(roomRef, {
-                players: players,
-                logs: logs,
-                turn: currentTurn + 1,
-                restrictedZones: restrictedZones
-            });
-        }
-
-        function renderLogs(logs) {
-            const container = document.getElementById("event-log-container");
-            if (!container) return;
-            container.innerHTML = "";
-            logs.slice(-30).forEach(log => {
-                const item = document.createElement("div");
-                item.className = "py-0.5 border-b border-slate-800/40";
-                item.textContent = log;
-                container.appendChild(item);
-            });
-            container.scrollTop = container.scrollHeight;
-        }
-
-        window.openInventoryModal = function() {
-            document.getElementById("modal-inventory")?.classList.remove("hidden");
-            renderInventory();
-        };
-
-        window.openCraftingModal = function() {
-            document.getElementById("modal-crafting")?.classList.remove("hidden");
-            renderCrafting();
-        };
-
-        window.closeModal = function(id) {
-            document.getElementById(id)?.classList.add("hidden");
-        };
-
-        function renderInventory() {
-            const equippedList = document.getElementById("inventory-equipped-list");
-            const itemsList = document.getElementById("inventory-items-list");
-            if (!equippedList || !itemsList) return;
-
-            let weaponText = "맨손";
-            if (player.equippedWeapon) {
-                const wData = ITEMS_DATABASE[player.equippedWeapon.itemCode];
-                weaponText = `${wData?.name} (내구도: ${player.equippedWeapon.currentDurability}/${wData?.maxDurability || 5})`;
-            }
-
-            equippedList.innerHTML = `
-                <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 text-xs flex justify-between">
-                    <span class="text-slate-400">무기:</span>
-                    <span class="font-bold text-amber-400">${weaponText}</span>
-                </div>
-                <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 text-xs flex justify-between">
-                    <span class="text-slate-400">방어구:</span>
-                    <span class="font-bold text-cyan-400">${player.equippedArmor || "없음"}</span>
-                </div>
-            `;
-
-            itemsList.innerHTML = "";
-            const items = player.inventory?.items || {};
-            const itemKeys = Object.keys(items);
-
-            if (itemKeys.length === 0) {
-                itemsList.innerHTML = `<div class="text-xs text-slate-500 italic">소지 중인 아이템이 없습니다.</div>`;
-                return;
-            }
-
-            itemKeys.forEach(code => {
-                const count = items[code];
-                if (count <= 0) return;
-
-                const itemData = ITEMS_DATABASE[code] || { name: code, type: "material", desc: "" };
-                const div = document.createElement("div");
-                div.className = "bg-slate-950 p-2 rounded-xl border border-slate-800 flex justify-between items-center text-xs";
-                
-                let actionBtn = "";
-                if (itemData.type === 'consumable') {
-                    actionBtn = `<button onclick="useOrEquipItem('${code}')" class="bg-emerald-800 hover:bg-emerald-700 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white transition">사용</button>`;
-                } else if (itemData.type === 'weapon') {
-                    actionBtn = `<button onclick="useOrEquipItem('${code}')" class="bg-amber-800 hover:bg-amber-700 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white transition">장착</button>`;
-                }
-
-                div.innerHTML = `
-                    <div>
-                        <span class="font-bold text-slate-200">${itemData.name}</span>
-                        <span class="text-slate-500 ml-1">x${count}</span>
-                        <p class="text-[10px] text-slate-400">${itemData.desc || ""}</p>
-                    </div>
-                    ${actionBtn}
-                `;
-                itemsList.appendChild(div);
-            });
-        }
-
-        window.useOrEquipItem = async function(itemCode) {
-            if (!player.isAlive) return;
-
-            const items = player.inventory?.items || {};
-            if (!items[itemCode] || items[itemCode] <= 0) {
-                window.showAlert("아이템 수량이 부족합니다.");
-                return;
-            }
-
-            const itemData = ITEMS_DATABASE[itemCode];
-            if (!itemData) return;
-
-            if (itemData.type === "consumable" && itemData.effect === "heal") {
-                player.hp = Math.min(player.maxHp, player.hp + itemData.value);
-                items[itemCode] -= 1;
-                if (items[itemCode] <= 0) delete items[itemCode];
-            } else if (itemData.type === "weapon") {
-                const currentDurability = itemData.maxDurability || 5;
-                player.equippedWeapon = {
-                    itemCode: itemCode,
-                    currentDurability: currentDurability
+                    },
+                    logs: ["방이 생성되었습니다."]
                 };
-            }
 
-            if (isOfflineMode || !db) {
-                localRoomState.players[localPlayerId] = player;
-                renderInventory();
-                renderGameplayUI(localRoomState);
+                roomRef.set(initialData).then(() => {
+                    listenToRoom();
+                    switchScreen("screen-room-waiting");
+                }).catch(err => {
+                    showAlert("방 생성에 실패했습니다: " + err.message);
+                });
+            } else {
+                // Offline Fallback Mode
+                currentRoomCode = "LOCAL1";
+                roomData = {
+                    code: currentRoomCode,
+                    status: "waiting",
+                    hostId: myPlayerId,
+                    players: {
+                        [myPlayerId]: { id: myPlayerId, name: name, hp: 100, maxHp: 100, atk: 15, def: 5, isHost: true, isAlive: true, items: [] },
+                        "bot_1": { id: "bot_1", name: "AI 훈련봇", hp: 80, maxHp: 80, atk: 10, def: 2, isHost: false, isAlive: true, items: [] }
+                    },
+                    logs: ["로컬 모드로 시작되었습니다."]
+                };
+                renderWaitingRoom();
+                switchScreen("screen-room-waiting");
+            }
+        }
+
+        // Join Room
+        function joinRoom() {
+            const nicknameInput = document.getElementById("input-nickname");
+            const roomCodeInput = document.getElementById("input-room-code");
+            const name = nicknameInput ? nicknameInput.value.trim() : "";
+            const code = roomCodeInput ? roomCodeInput.value.trim() : "";
+
+            if (!name) {
+                showAlert("닉네임을 입력해 주세요!");
+                return;
+            }
+            if (!code) {
+                showAlert("방 코드를 입력해 주세요!");
                 return;
             }
 
-            const playerRef = ref(db, `rooms/${roomCode}/players/${localPlayerId}`);
-            await update(playerRef, {
-                hp: player.hp,
-                equippedWeapon: player.equippedWeapon,
-                "inventory/items": items
-            });
-            renderInventory();
-        };
+            if (!isFirebaseAvailable || !db) {
+                showAlert("오프라인 상태에서는 다른 방에 입장할 수 없습니다.");
+                return;
+            }
 
-        function renderCrafting() {
-            const matSummary = document.getElementById("crafting-materials-summary");
-            const recipeList = document.getElementById("crafting-recipes-list");
-            if (!matSummary || !recipeList) return;
+            myPlayerId = generateId();
+            isHost = false;
+            currentRoomCode = code;
+            roomRef = db.ref("rooms/" + currentRoomCode);
 
-            matSummary.innerHTML = "";
-            const items = player.inventory?.items || {};
-
-            Object.keys(items).forEach(code => {
-                if (items[code] > 0) {
-                    const itemData = ITEMS_DATABASE[code];
-                    const badge = document.createElement("span");
-                    badge.className = "bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-[11px] text-slate-300";
-                    badge.textContent = `${itemData?.name || code}: ${items[code]}개`;
-                    matSummary.appendChild(badge);
-                }
-            });
-
-            recipeList.innerHTML = "";
-            RECIPES.forEach(recipe => {
-                let canCraft = true;
-                let reqText = [];
-
-                Object.keys(recipe.req).forEach(reqCode => {
-                    const reqCount = recipe.req[reqCode];
-                    const hasCount = items[reqCode] || 0;
-                    const reqItemData = ITEMS_DATABASE[reqCode];
-                    reqText.push(`${reqItemData?.name || reqCode} ${hasCount}/${reqCount}`);
-                    if (hasCount < reqCount) canCraft = false;
-                });
-
-                const div = document.createElement("div");
-                div.className = "bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center text-xs";
-                div.innerHTML = `
-                    <div>
-                        <div class="font-bold text-amber-400">${recipe.name}</div>
-                        <div class="text-[10px] text-slate-400 mb-1">${recipe.desc}</div>
-                        <div class="text-[10px] text-slate-500">필요: ${reqText.join(", ")}</div>
-                    </div>
-                    <button onclick="craftItem('${recipe.id}')" ${!canCraft ? 'disabled' : ''} 
-                        class="px-3 py-1.5 rounded-lg text-[11px] font-bold transition ${
-                            canCraft ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-slate-800 text-slate-600 cursor-not-allowed'
-                        }">
-                        제작
-                    </button>
-                `;
-                recipeList.appendChild(div);
-            });
-        }
-
-        window.craftItem = async function(recipeId) {
-            const recipe = RECIPES.find(r => r.id === recipeId);
-            if (!recipe) return;
-
-            const items = player.inventory?.items || {};
-
-            for (let reqCode in recipe.req) {
-                if ((items[reqCode] || 0) < recipe.req[reqCode]) {
-                    window.showAlert("재료가 부족합니다.");
+            roomRef.once("value").then(snapshot => {
+                if (!snapshot.exists()) {
+                    showAlert("존재하지 않는 방 코드입니다.");
                     return;
                 }
+                const data = snapshot.val();
+                if (data.status !== "waiting") {
+                    showAlert("이미 게임이 진행 중이거나 종료된 방입니다.");
+                    return;
+                }
+
+                // Add Self to Room
+                roomRef.child("players/" + myPlayerId).set({
+                    id: myPlayerId,
+                    name: name,
+                    hp: 100,
+                    maxHp: 100,
+                    atk: 15,
+                    def: 5,
+                    isHost: false,
+                    isAlive: true,
+                    items: []
+                }).then(() => {
+                    listenToRoom();
+                    switchScreen("screen-room-waiting");
+                });
+            }).catch(err => {
+                showAlert("입장 중 오류 발생: " + err.message);
+            });
+        }
+
+        // Listen to Firebase Updates
+        function listenToRoom() {
+            if (!roomRef) return;
+            roomRef.on("value", snapshot => {
+                if (!snapshot.exists()) {
+                    showAlert("방이 삭제되었거나 존재하지 않습니다.");
+                    leaveRoom();
+                    return;
+                }
+                roomData = snapshot.val();
+                
+                if (roomData.status === "waiting") {
+                    renderWaitingRoom();
+                } else if (roomData.status === "playing") {
+                    switchScreen("screen-gameplay");
+                    renderGameplayUI();
+                }
+            });
+        }
+
+        // Leave Room
+        function leaveRoom() {
+            if (roomRef && myPlayerId) {
+                roomRef.child("players/" + myPlayerId).remove();
+                roomRef.off();
+            }
+            roomRef = null;
+            roomData = null;
+            currentRoomCode = null;
+            switchScreen("screen-lobby");
+        }
+
+        // Render Waiting Room UI
+        function renderWaitingRoom() {
+            const listEl = document.getElementById("waiting-player-list");
+            const codeEl = document.getElementById("display-room-code");
+            const startBtn = document.getElementById("btn-start-game");
+            const statusTxt = document.getElementById("waiting-status-text");
+
+            if (codeEl) codeEl.innerText = currentRoomCode || "------";
+            if (!listEl || !roomData) return;
+
+            listEl.innerHTML = "";
+            const players = roomData.players || {};
+            const playerArray = Object.values(players);
+
+            playerArray.forEach(p => {
+                const card = document.createElement("div");
+                card.className = "bg-slate-900 border border-slate-700/80 rounded-xl p-4 flex items-center justify-between";
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center font-bold text-amber-400">
+                            ${p.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div class="font-bold text-slate-200 flex items-center gap-2">
+                                ${p.name}
+                                ${p.isHost ? '<span class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded">방장</span>' : ''}
+                                ${p.id === myPlayerId ? '<span class="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">나</span>' : ''}
+                            </div>
+                            <div class="text-xs text-slate-400">HP: ${p.hp}/${p.maxHp}</div>
+                        </div>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+
+            if (startBtn) {
+                if (isHost) {
+                    startBtn.disabled = playerArray.length < 1;
+                    if (statusTxt) statusTxt.innerText = "모든 참가자가 준비되면 게임을 시작하세요.";
+                } else {
+                    startBtn.disabled = true;
+                    if (statusTxt) statusTxt.innerText = "방장이 게임을 시작하기를 기다리는 중...";
+                }
+            }
+        }
+
+        // Start Game
+        function startGame() {
+            if (!isHost) return;
+            if (isFirebaseAvailable && roomRef) {
+                roomRef.update({
+                    status: "playing",
+                    turn: 1
+                });
+            } else if (roomData) {
+                roomData.status = "playing";
+                roomData.turn = 1;
+                switchScreen("screen-gameplay");
+                renderGameplayUI();
+            }
+        }
+
+        // Render Gameplay UI
+        function renderGameplayUI() {
+            if (!roomData) return;
+
+            const turnInfo = document.getElementById("game-turn-info");
+            const aliveCount = document.getElementById("player-alive-count");
+            const grid = document.getElementById("game-players-grid");
+            const logBox = document.getElementById("game-log-box");
+
+            if (turnInfo) turnInfo.innerText = `턴 ${roomData.turn || 1}`;
+
+            const players = Object.values(roomData.players || {});
+            const alivePlayers = players.filter(p => p.isAlive);
+
+            if (aliveCount) aliveCount.innerText = `생존자: ${alivePlayers.length} / ${players.length}`;
+
+            if (grid) {
+                grid.innerHTML = "";
+                players.forEach(p => {
+                    const hpPercent = Math.max(0, Math.min(100, (p.hp / p.maxHp) * 100));
+                    const card = document.createElement("div");
+                    card.className = `p-4 rounded-xl border ${p.isAlive ? 'bg-slate-800 border-slate-700' : 'bg-slate-900/50 border-red-900/30 opacity-60'}`;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-bold text-slate-200">${p.name} ${!p.isAlive ? '(사망)' : ''}</span>
+                            <span class="text-xs font-mono text-slate-400">HP ${p.hp}/${p.maxHp}</span>
+                        </div>
+                        <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-700">
+                            <div class="bg-gradient-to-r from-red-500 to-emerald-500 h-full transition-all duration-300" style="width: ${hpPercent}%"></div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
             }
 
-            for (let reqCode in recipe.req) {
-                items[reqCode] -= recipe.req[reqCode];
-                if (items[reqCode] <= 0) delete items[reqCode];
+            if (logBox && roomData.logs) {
+                logBox.innerHTML = roomData.logs.map(log => `<div>> ${log}</div>`).join('');
+                logBox.scrollTop = logBox.scrollHeight;
             }
+        }
 
-            items[recipe.result] = (items[recipe.result] || 0) + 1;
-
-            if (isOfflineMode || !db) {
-                localRoomState.players[localPlayerId].inventory.items = items;
-                renderCrafting();
+        // Action Handlers
+        function takeAction(actionType) {
+            if (!roomData || roomData.status !== "playing") return;
+            const me = roomData.players ? roomData.players[myPlayerId] : null;
+            if (!me || !me.isAlive) {
+                showAlert("이미 사망하였거나 참가 상태가 아닙니다.");
                 return;
             }
 
-            const playerRef = ref(db, `rooms/${roomCode}/players/${localPlayerId}`);
-            await update(playerRef, {
-                "inventory/items": items
-            });
+            let logMsg = "";
+            if (actionType === "explore") {
+                const foundHp = Math.floor(Math.random() * 15) + 5;
+                me.hp = Math.min(me.maxHp, me.hp + foundHp);
+                logMsg = `${me.name} 님이 탐색을 통해 아이템을 찾고 체력을 ${foundHp} 회복했습니다.`;
+            } else if (actionType === "rest") {
+                const heal = 20;
+                me.hp = Math.min(me.maxHp, me.hp + heal);
+                logMsg = `${me.name} 님이 휴식을 취하여 체력을 ${heal} 회복했습니다.`;
+            }
 
-            renderCrafting();
-        };
+            if (!roomData.logs) roomData.logs = [];
+            roomData.logs.push(logMsg);
+
+            if (isFirebaseAvailable && roomRef) {
+                roomRef.update({
+                    players: roomData.players,
+                    logs: roomData.logs
+                });
+            } else {
+                renderGameplayUI();
+            }
+        }
+
+        // Inventory Handlers
+        function openInventory() {
+            const modal = document.getElementById("modal-inventory");
+            const list = document.getElementById("inventory-item-list");
+            if (modal) modal.classList.remove("hidden");
+            if (list) {
+                list.innerHTML = `<p class="text-sm text-slate-400 text-center py-4">소지품이 비어있습니다.</p>`;
+            }
+        }
+
+        function closeInventory() {
+            const modal = document.getElementById("modal-inventory");
+            if (modal) modal.classList.add("hidden");
+        }
+
+        // Screen Switcher
+        function switchScreen(screenId) {
+            ["screen-lobby", "screen-room-waiting", "screen-gameplay"].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (id === screenId) el.classList.remove("hidden");
+                    else el.classList.add("hidden");
+                }
+            });
+        }
     </script>
 </body>
 </html>
